@@ -1,0 +1,8 @@
+train: ./color_products_dataset/train/images
+val: ./color_products_dataset/valid/images
+test: ./color_products_dataset/test/images
+
+nc: 1
+names: ['product']
+
+
