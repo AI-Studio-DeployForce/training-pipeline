@@ -9,25 +9,25 @@ from ultralytics import YOLO
 # ------------------------
 @PipelineDecorator.component(return_values=["dataset_id"])
 def version_dataset():
-    dataset = Dataset.create(
-        dataset_name="YOLOv9_Dataset",
-        dataset_project="YOLOv9_Training",
-        dataset_tags=["version1"]
-    )
+    # dataset = Dataset.create(
+    #     dataset_name="YOLOv9_Dataset",
+    #     dataset_project="YOLOv9_Training",
+    #     dataset_tags=["version1"]
+    # )
 
-    print("Adding dataset files...")
-    dataset.add_files(path="./datasets/color_products_dataset")
+    # print("Adding dataset files...")
+    # dataset.add_files(path="./datasets/dataset")
 
-    print("Uploading dataset files to ClearML storage...")
-    dataset.upload()  # Ensure files are uploaded before finalizing
+    # print("Uploading dataset files to ClearML storage...")
+    # dataset.upload()  # Ensure files are uploaded before finalizing
 
-    print("Finalizing dataset version...")
-    dataset.finalize()
+    # print("Finalizing dataset version...")
+    # dataset.finalize()
     
-    dataset_id = dataset.id
+    # dataset_id = dataset.id
 
-    print(f"Dataset version created: {dataset.id}")
-    return dataset_id
+    #print(f"Dataset version created: {dataset.id}")
+    return "6f34ba84d9d74a968f7333d53f874910"#dataset_id
 
 # ------------------------
 # STEP 2: Base training
@@ -47,18 +47,18 @@ def base_train_yolov9(dataset_id):
     # 2) Define default hyperparams
     default_params = {
         "data_config": "./data.yaml",
-        "model_config": "./yolov9_architecture.yaml",
-        "epochs": 150,
+        "model_config": "./best.pt",
+        "epochs": 20,
         "img_size": 256,
         "batch_size": 32,
-        "lr0": 0.01,          # initial learning rate
-        "lrf": 0.001,         # final OneCycleLR learning rate
-        "momentum": 0.937,    # SGD momentum / Adam beta1
-        "weight_decay": 0.001,   # optimizer weight decay
-        "warmup_epochs": 3.0,     # number of warmup epochs
+        "lr0": 0.001,          # initial learning rate
+        "lrf": 0.1,         # final OneCycleLR learning rate
+        "momentum": 0.9,    # SGD momentum / Adam beta1
+        "weight_decay": 0.0005,   # optimizer weight decay
+        "warmup_epochs": 5.0,     # number of warmup epochs
         "warmup_momentum": 0.8,   # initial momentum during warmup
         "warmup_bias_lr": 0.1,    # initial bias lr during warmup
-        "box": 0.02,               # box loss gain
+        "box": 5.0,               # box loss gain
         "cls": 0.5,               # classification loss gain
         "iou": 0.20,              # IoU training threshold
         "hsv_h": 0.015,           # HSV hue augmentation
@@ -71,9 +71,9 @@ def base_train_yolov9(dataset_id):
         "perspective": 0.0,       # perspective (+/- fraction)
         "flipud": 0.0,            # up-down flip probability
         "fliplr": 0.5,            # left-right flip probability
-        "mosaic": 1.0,            # mosaic augmentation probability
-        "mixup": 0.15,            # mixup augmentation probability
-        "copy_paste": 0.3,        # segment copy-paste augmentation probability
+        "mosaic": 0.8,            # mosaic augmentation probability
+        "mixup": 0,            # mixup augmentation probability
+        "copy_paste": 0.2,        # segment copy-paste augmentation probability
         "optimizer": "AdamW",     # optimizer
     }
 
@@ -189,29 +189,29 @@ def hyperparam_optimize(base_task_id):
     optimizer = HyperParameterOptimizer(
         base_task_id=base_task_id,
         hyper_parameters=[
-            UniformParameterRange("General/lr0", min_value=1e-5, max_value=1e-1),
-            UniformParameterRange("General/lrf", min_value=1e-3, max_value=1.0),
-            UniformParameterRange("General/momentum", min_value=0.8, max_value=0.99),
-            UniformParameterRange("General/weight_decay", min_value=0.0, max_value=0.001),
-            UniformParameterRange("General/warmup_epochs", min_value=0.0, max_value=5.0),
-            UniformParameterRange("General/warmup_momentum", min_value=0.0, max_value=0.95),
-            UniformParameterRange("General/warmup_bias_lr", min_value=0.0, max_value=0.2),
-            UniformParameterRange("General/box", min_value=0.02, max_value=0.2),
-            UniformParameterRange("General/cls", min_value=0.2, max_value=4.0),
-            UniformParameterRange("General/iou", min_value=0.1, max_value=0.8),
-            UniformParameterRange("General/hsv_h", min_value=0.0, max_value=0.1),
-            UniformParameterRange("General/hsv_s", min_value=0.0, max_value=0.9),
-            UniformParameterRange("General/hsv_v", min_value=0.0, max_value=0.9),
-            UniformParameterRange("General/degrees", min_value=0.0, max_value=45.0),
-            UniformParameterRange("General/translate", min_value=0.0, max_value=0.9),
-            UniformParameterRange("General/scale", min_value=0.0, max_value=0.9),
-            UniformParameterRange("General/shear", min_value=0.0, max_value=10.0),
-            UniformParameterRange("General/perspective", min_value=0.0, max_value=0.001),
-            UniformParameterRange("General/flipud", min_value=0.0, max_value=1.0),
-            UniformParameterRange("General/fliplr", min_value=0.0, max_value=1.0),
-            UniformParameterRange("General/mosaic", min_value=0.0, max_value=1.0),
-            UniformParameterRange("General/mixup", min_value=0.0, max_value=1.0),
-            UniformParameterRange("General/copy_paste", min_value=0.0, max_value=1.0),
+                UniformParameterRange("General/lr0", min_value=1e-5, max_value=1e-2),         # Lower initial LR to avoid exploding gradients
+                UniformParameterRange("General/lrf", min_value=1e-3, max_value=0.3),           # Ensure final LR (lr0 * lrf) remains much lower than lr0
+                UniformParameterRange("General/momentum", min_value=0.8, max_value=0.95),      # Limit momentum to prevent overshooting
+                UniformParameterRange("General/weight_decay", min_value=0.0, max_value=0.001), # Keep weight decay similar for regularization
+                UniformParameterRange("General/warmup_epochs", min_value=2.0, max_value=7.0),  # Encourage a longer warmup period
+                UniformParameterRange("General/warmup_momentum", min_value=0.6, max_value=0.9),# Use a moderate warmup momentum range
+                UniformParameterRange("General/warmup_bias_lr", min_value=0.05, max_value=0.2),  # Small warmup bias learning rate
+                # UniformParameterRange("General/box", min_value=0.02, max_value=0.2),          # (Commented out if not tuning)
+                UniformParameterRange("General/cls", min_value=0.2, max_value=1.0),            # Reduce cls loss gain range to avoid imbalance
+                UniformParameterRange("General/iou", min_value=0.1, max_value=0.8),            # IoU threshold range remains similar
+                UniformParameterRange("General/hsv_h", min_value=0.0, max_value=0.05),         # Milder hue augmentation
+                UniformParameterRange("General/hsv_s", min_value=0.0, max_value=0.7),          # Cap saturation augmentation at a lower max
+                UniformParameterRange("General/hsv_v", min_value=0.0, max_value=0.5),          # Limit value augmentation to a lower range
+                UniformParameterRange("General/degrees", min_value=0.0, max_value=15.0),       # Restrict rotation to avoid extreme changes
+                UniformParameterRange("General/translate", min_value=0.0, max_value=0.3),      # Limit translation augmentation
+                UniformParameterRange("General/scale", min_value=0.0, max_value=0.3),          # Narrow scale changes for stability
+                UniformParameterRange("General/shear", min_value=0.0, max_value=5.0),          # Limit shear to a milder range
+                UniformParameterRange("General/perspective", min_value=0.0, max_value=0.001),  # Perspective remains very small
+                UniformParameterRange("General/flipud", min_value=0.0, max_value=0.5),         # Limit vertical flip probability
+                UniformParameterRange("General/fliplr", min_value=0.3, max_value=0.7),         # Focus horizontal flip around 50%
+                UniformParameterRange("General/mosaic", min_value=0.5, max_value=0.8),         # Use mosaic with a moderate probability
+                UniformParameterRange("General/mixup", min_value=0.0, max_value=0.2),          # Keep mixup probability low
+                UniformParameterRange("General/copy_paste", min_value=0.0, max_value=0.3),     # Limit copy-paste to reduce aggressive augmentations
         ],
         # this is the objective metric we want to maximize/minimize
         objective_metric_title="metrics",
