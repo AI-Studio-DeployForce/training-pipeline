@@ -198,29 +198,28 @@ for idx, image_file in enumerate(all_image_files):
     #    Only show every 50th image
     # -------------------------------
     if idx % 50 == 0:
-        print("putos")
-        # plt.figure(figsize=(18, 6))
+        plt.figure(figsize=(18, 6))
 
-        # # Original big image
-        # plt.subplot(1, 3, 1)
-        # plt.title("Big Original Image")
-        # plt.imshow(cv2.cvtColor(big_image, cv2.COLOR_BGR2RGB))
-        # plt.axis("off")
+        # Original big image
+        plt.subplot(1, 3, 1)
+        plt.title("Big Original Image")
+        plt.imshow(cv2.cvtColor(big_image, cv2.COLOR_BGR2RGB))
+        plt.axis("off")
 
-        # # Ground Truth mask
-        # plt.subplot(1, 3, 2)
-        # plt.title("Big Ground Truth Mask")
-        # plt.imshow(cv2.cvtColor(gt_mask, cv2.COLOR_BGR2RGB))
-        # plt.axis("off")
+        # Ground Truth mask
+        plt.subplot(1, 3, 2)
+        plt.title("Big Ground Truth Mask")
+        plt.imshow(cv2.cvtColor(gt_mask, cv2.COLOR_BGR2RGB))
+        plt.axis("off")
 
-        # # Prediction mask
-        # plt.subplot(1, 3, 3)
-        # plt.title("Big Prediction Mask")
-        # plt.imshow(cv2.cvtColor(pred_mask, cv2.COLOR_BGR2RGB))
-        # plt.axis("off")
+        # Prediction mask
+        plt.subplot(1, 3, 3)
+        plt.title("Big Prediction Mask")
+        plt.imshow(cv2.cvtColor(pred_mask, cv2.COLOR_BGR2RGB))
+        plt.axis("off")
 
-        # plt.tight_layout()
-        # plt.show()
+        plt.tight_layout()
+        plt.show()
 
     # -------------------------------
     # 7) Save final masks to predictions_final folder
