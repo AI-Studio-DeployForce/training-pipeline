@@ -9,25 +9,25 @@ from ultralytics import YOLO
 # ------------------------
 @PipelineDecorator.component(return_values=["dataset_id"])
 def version_dataset():
-    # dataset = Dataset.create(
-    #     dataset_name="YOLOv9_Dataset",
-    #     dataset_project="YOLOv9_Training",
-    #     dataset_tags=["version1"]
-    # )
+    dataset = Dataset.create(
+        dataset_name="YOLOv9_Dataset",
+        dataset_project="YOLOv9_Training",
+        dataset_tags=["version1"]
+    )
 
-    # print("Adding dataset files...")
-    # dataset.add_files(path="./datasets/dataset")
+    print("Adding dataset files...")
+    dataset.add_files(path="./datasets/dataset")
 
-    # print("Uploading dataset files to ClearML storage...")
-    # dataset.upload()  # Ensure files are uploaded before finalizing
+    print("Uploading dataset files to ClearML storage...")
+    dataset.upload()  # Ensure files are uploaded before finalizing
 
-    # print("Finalizing dataset version...")
-    # dataset.finalize()
+    print("Finalizing dataset version...")
+    dataset.finalize()
     
-    # dataset_id = dataset.id
+    dataset_id = dataset.id
 
-    #print(f"Dataset version created: {dataset.id}")
-    return "6f34ba84d9d74a968f7333d53f874910"#dataset_id
+    print(f"Dataset version created: {dataset.id}")
+    return dataset_id
 
 # ------------------------
 # STEP 2: Base training

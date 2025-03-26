@@ -4,3 +4,4 @@
 *.png
 *.cache
 *.csv
+!requirements.txt
