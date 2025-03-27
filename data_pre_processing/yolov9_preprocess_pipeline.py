@@ -1,11 +1,139 @@
 import os
 import shutil
 import time
-import argparse
+import json
 
-# command to run:
-# python data_pre_processing/yolov9_preprocess_pipeline.py --post_folder "D:/Kuliah_S2/Semester_4/AIS/Code/yolov9-building-evaluation/YOLO_pre_post/post" --data_folder "D:/Kuliah_S2/Semester_4/AIS/Code/segmentation-model/data" --window_size 512 --keep_ratio 0.2
+def parse_polygon(wkt_str):
+    """
+    Parse a WKT polygon string.
+    Expected format: "POLYGON ((x1 y1, x2 y2, ..., xn yn))"
+    Returns a list of (x, y) tuples.
+    """
+    if not wkt_str.startswith("POLYGON ((") or not wkt_str.endswith("))"):
+        raise ValueError("Invalid WKT format")
+    # Remove the "POLYGON ((" prefix and the "))" suffix.
+    coords_str = wkt_str[len("POLYGON (("):-2]
+    coords = []
+    # Split coordinate pairs by comma and then by whitespace.
+    for pair in coords_str.split(","):
+        x_str, y_str = pair.strip().split()
+        coords.append((float(x_str), float(y_str)))
+    return coords
 
+def convert_json_to_yolo(json_file, default_width=1024, default_height=1024, class_map=None, default_class_id=0):
+    """
+    Convert a JSON label file to YOLO segmentation format.
+    
+    For post-disaster JSON, the properties include a "subtype" field and are mapped
+    using the provided class_map. For pre-disaster JSON (which only has building segments),
+    the default_class_id is used for every instance.
+    
+    Returns a list of strings in the following YOLO format:
+       <class_id> x1 y1 x2 y2 ... xn yn
+    where the coordinates are normalized (divided by image width and height).
+    """
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    
+    # Retrieve image dimensions from metadata, or use defaults.
+    image_width = data.get("metadata", {}).get("width", default_width)
+    image_height = data.get("metadata", {}).get("height", default_height)
+    
+    yolo_lines = []
+    # Process the "xy" features (pixel coordinates).
+    features = data.get("features", {}).get("xy", [])
+    for feature in features:
+        properties = feature.get("properties", {})
+        # For post-disaster JSON, use the subtype with class mapping.
+        if "subtype" in properties:
+            if class_map is None:
+                class_map = {
+                    "no-damage": 0,
+                    "minor-damage": 1,
+                    "major-damage": 2,
+                    "destroyed": 3
+                }
+            subtype = properties.get("subtype", "unknown")
+            class_id = class_map.get(subtype, -1)
+            if class_id == -1:
+                # Skip features with an undefined subtype.
+                continue
+        else:
+            # Pre-disaster JSON: assign default class id (e.g., 0 for all buildings)
+            class_id = default_class_id
+        
+        wkt = feature.get("wkt", "")
+        try:
+            coords = parse_polygon(wkt)
+        except ValueError as e:
+            print(f"Error parsing polygon in file {json_file}: {e}")
+            continue
+        
+        # Normalize the polygon coordinates.
+        norm_coords = []
+        for (x, y) in coords:
+            norm_x = x / image_width
+            norm_y = y / image_height
+            norm_coords.extend([f"{norm_x:.6f}", f"{norm_y:.6f}"])
+        
+        # YOLO segmentation format: <class_id> x1 y1 x2 y2 ... xn yn
+        line = f"{class_id} " + " ".join(norm_coords)
+        yolo_lines.append(line)
+    
+    return yolo_lines
+
+def process_directory(split, src_root, dst_root, default_class_id=0):
+    """
+    Process one dataset split (train/valid/test) and convert its JSON labels to YOLO segmentation format.
+    
+    The script now determines the destination folder based on the file name:
+      - If the file name contains "post" then the converted labels are saved to:
+            <dst_root>/post/<split>/labels/
+      - If the file name contains "pre" then the labels are saved to:
+            <dst_root>/pre/<split>/labels/
+      - If neither is specified, it defaults to the "pre" folder.
+    
+    Note: If the split is "valid", the output folder is named "valid".
+    """
+    src_labels_dir = os.path.join(src_root, split, "labels")
+    out_split = "valid" if split == "valid" else split
+    dst_labels_dir_post = os.path.join(dst_root, "post", out_split, "labels")
+    dst_labels_dir_pre = os.path.join(dst_root, "pre", out_split, "labels")
+    os.makedirs(dst_labels_dir_post, exist_ok=True)
+    os.makedirs(dst_labels_dir_pre, exist_ok=True)
+    
+    # Define the class mapping for post-disaster JSON labels.
+    class_map = {
+        "no-damage": 0,
+        "minor-damage": 1,
+        "major-damage": 2,
+        "destroyed": 3
+    }
+    
+    # Iterate over each JSON file in the source labels directory.
+    for filename in os.listdir(src_labels_dir):
+        if filename.endswith(".json"):
+            src_file = os.path.join(src_labels_dir, filename)
+            # Convert the JSON file to YOLO segmentation format.
+            yolo_lines = convert_json_to_yolo(src_file, class_map=class_map, default_class_id=default_class_id)
+            
+            # Determine destination folder based on file naming.
+            lower_filename = filename.lower()
+            if "post" in lower_filename:
+                dst_file = os.path.join(dst_labels_dir_post, filename.replace(".json", ".txt"))
+            elif "pre" in lower_filename:
+                dst_file = os.path.join(dst_labels_dir_pre, filename.replace(".json", ".txt"))
+            else:
+                # Default behavior: save in "pre" folder if naming doesn't specify.
+                dst_file = os.path.join(dst_labels_dir_pre, filename.replace(".json", ".txt"))
+            
+            # Write the YOLO-formatted labels with a .txt extension.
+            with open(dst_file, 'w') as out_f:
+                for line in yolo_lines:
+                    out_f.write(line + "\n")
+    print(f"Processed {split} directory:")
+    print(f"  Post-disaster labels: {dst_labels_dir_post}")
+    print(f"  Pre-disaster labels: {dst_labels_dir_pre}")
 
 def print_step(step_number, step_description):
     """Print a formatted step header."""
@@ -23,7 +151,7 @@ def run_copy_data(post_folder, data_folder):
     # Define the mapping for folder names:
     subset_mapping = {
         "train": "train",
-        "valid": "holdout",
+        "valid": "valid",
         "test": "test"
     }
 
@@ -85,6 +213,8 @@ def run_subsample_images(post_folder):
     print_step(2, "Subsampling images (deleting 40% of the dataset)")
     
     import random
+    random.seed(42)  # For reproducibility
+    
     # List of subsets to process
     subsets = ["train", "valid", "test"]
 
@@ -572,36 +702,35 @@ def run_fix_annotations(base_dir):
     return base_dir
 
 def main():
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="YOLOv9 Preprocessing Pipeline")
-    parser.add_argument("--post_folder", default="./yolov9/data/dataset", 
-                        help="Path to the post folder")
-    parser.add_argument("--data_folder", default="./data", 
-                        help="Path to the data folder with original images")
-    parser.add_argument("--window_size", type=int, default=512, 
-                        help="Size of the window for image slicing")
-    parser.add_argument("--keep_ratio", type=float, default=0.2, 
-                        help="Ratio of empty labels to keep (0.0-1.0)")
-    
-    args = parser.parse_args()
+
+    src_root = "datasets/original_data"
+    dst_root = "datasets/original_data_yolo"
+    post_folder = "datasets/original_data_yolo/post"
+    window_size = 512
+    keep_ratio = 0.2
+
+    # Process each split: train, val, test.
+    for split in ["train", "valid", "test"]:
+        process_directory(split, src_root=src_root, dst_root=dst_root, default_class_id=0)
+
     
     start_time = time.time()
     
     # Step 1: Copy data to YOLOv9 format
-    post_folder = run_copy_data(args.post_folder, args.data_folder)
+    post_folder = run_copy_data(post_folder, src_root)
     
     # Step 2: Subsample images
     post_folder = run_subsample_images(post_folder)
     
     # Step 3: Image windowing
-    windowed_folder = run_image_windowing(post_folder, args.window_size)
+    windowed_folder = run_image_windowing(post_folder, window_size)
     
     # Step 4: Analyze dataset before deleting empty labels
     print("Dataset analysis BEFORE deleting empty labels:")
     before_stats = run_analyse_dataset(windowed_folder)
     
     # Step 5: Delete empty labels
-    windowed_folder = run_delete_empty_labels(windowed_folder, args.keep_ratio)
+    windowed_folder = run_delete_empty_labels(windowed_folder, keep_ratio)
     
     # Step 6: Analyze dataset after deleting empty labels
     print("Dataset analysis AFTER deleting empty labels:")
