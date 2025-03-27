@@ -92,9 +92,9 @@ def base_train_yolov9(dataset_id):
     default_params = {
         "data_config": "./data.yaml",
         "model_config": "./best.pt",
-        "epochs": 20,
-        "img_size": 256,
-        "batch_size": 16,
+        "epochs": 50,
+        "img_size": 512,
+        "batch_size": 8,
         "lr0": 0.001,          # initial learning rate
         "lrf": 0.1,         # final OneCycleLR learning rate
         "momentum": 0.9,    # SGD momentum / Adam beta1
