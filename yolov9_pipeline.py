@@ -16,7 +16,7 @@ def version_dataset():
     )
 
     print("Adding dataset files...")
-    dataset.add_files(path="./datasets/dataset")
+    dataset.add_files(path="./datasets/original_data")
 
     print("Uploading dataset files to ClearML storage...")
     dataset.upload()  # Ensure files are uploaded before finalizing
@@ -30,7 +30,51 @@ def version_dataset():
     return dataset_id
 
 # ------------------------
-# STEP 2: Base training
+# STEP 2: Dataset Preprocessing
+# ------------------------
+
+@PipelineDecorator.component(return_values=["processed_dataset_id"])
+def preprocess_dataset(dataset_id):
+    print("Starting dataset preprocessing...")
+    
+    # Use the local dataset path directly
+    dataset_path = "./datasets/original_data"
+    print(f"Using local dataset at: {dataset_path}")
+    
+    # Import and run the preprocessing pipeline
+    from data_pre_processing.yolov9_preprocess_pipeline import main
+    main(src_root = dataset_path,  # Use the local dataset path
+         dst_root = "datasets/original_data_yolo",
+         post_folder = "datasets/original_data_yolo/post", 
+         window_size = 512, 
+         keep_ratio = 0.2)
+    
+    print("Preprocessing completed successfully")
+    
+    # Version the processed dataset
+    processed_dataset = Dataset.create(
+        dataset_name="YOLOv9_Processed_Dataset",
+        dataset_project="YOLOv9_Training",
+        dataset_tags=["processed", "version1"],
+        parent_datasets=[dataset_id]  # Link to the original dataset
+    )
+
+    print("Adding processed dataset files...")
+    processed_dataset.add_files(path="./datasets/dataset")
+
+    print("Uploading processed dataset files to ClearML storage...")
+    processed_dataset.upload()
+
+    print("Finalizing processed dataset version...")
+    processed_dataset.finalize()
+    
+    processed_dataset_id = processed_dataset.id
+    print(f"Processed dataset version created: {processed_dataset_id}")
+    
+    return processed_dataset_id
+
+# ------------------------
+# STEP 3: Base training
 # ------------------------
 @PipelineDecorator.component(return_values=["base_task_id"])
 def base_train_yolov9(dataset_id):
@@ -175,7 +219,7 @@ def base_train_yolov9(dataset_id):
     return task.id
 
 # ------------------------
-# STEP 3: Hyperparameter Tuning
+# STEP 4: Hyperparameter Tuning
 # ------------------------
 @PipelineDecorator.component()
 def hyperparam_optimize(base_task_id):
@@ -262,9 +306,15 @@ def hyperparam_optimize(base_task_id):
     project="YOLOv9_Training"
 )
 def run_pipeline():
+    # Step 1: Version the original dataset
     dataset_id = version_dataset()
-    base_id = base_train_yolov9(dataset_id=dataset_id)
+    
+    # Step 2: Preprocess the dataset and version the processed dataset
+    processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
+    
+    base_id = base_train_yolov9(dataset_id=processed_dataset_id)
     hyperparam_optimize(base_task_id=base_id)
+
 
 if __name__ == "__main__":
     print("Running YOLOv9 pipeline locally...")

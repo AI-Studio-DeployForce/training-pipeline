@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import json
+from datetime import datetime
 
 def parse_polygon(wkt_str):
     """
@@ -701,18 +702,30 @@ def run_fix_annotations(base_dir):
     print(f"Step 8 completed: Annotations fixed in {base_dir}")
     return base_dir
 
-def main():
-
-    src_root = "datasets/original_data"
-    dst_root = "datasets/original_data_yolo"
-    post_folder = "datasets/original_data_yolo/post"
-    window_size = 512
-    keep_ratio = 0.2
+def main(src_root = "datasets/original_data",
+         dst_root = "datasets/original_data_yolo",
+         post_folder = "datasets/original_data_yolo/post", 
+         window_size = 512, 
+         keep_ratio = 0.2):
 
     # Process each split: train, val, test.
     for split in ["train", "valid", "test"]:
         process_directory(split, src_root=src_root, dst_root=dst_root, default_class_id=0)
 
+    # Handle dataset folder organization
+    datasets_dir = "datasets"
+    dataset_dir = os.path.join(datasets_dir, "dataset")
+    
+    # If dataset folder exists, rename it to dataset_old with timestamp
+    if os.path.exists(dataset_dir):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        old_dataset_dir = os.path.join(datasets_dir, f"dataset_old_{timestamp}")
+        print(f"\nRenaming existing dataset folder to: {old_dataset_dir}")
+        shutil.move(dataset_dir, old_dataset_dir)
+    
+    # Create fresh dataset folder
+    os.makedirs(dataset_dir, exist_ok=True)
+    print(f"Created fresh dataset folder at: {dataset_dir}")
     
     start_time = time.time()
     
@@ -742,6 +755,12 @@ def main():
     # Step 8: Fix annotations
     windowed_folder = run_fix_annotations(windowed_folder)
     
+    # Move the final processed dataset to the new dataset folder
+    final_dataset_name = os.path.basename(windowed_folder)
+    final_dataset_path = os.path.join(dataset_dir, final_dataset_name)
+    print(f"\nMoving final dataset to: {final_dataset_path}")
+    shutil.move(windowed_folder, final_dataset_path)
+    
     # Final summary
     end_time = time.time()
     total_time = end_time - start_time
@@ -749,8 +768,12 @@ def main():
     print("\n" + "="*80)
     print(f"PREPROCESSING PIPELINE COMPLETED in {total_time:.2f} seconds")
     print("="*80)
-    print(f"Final dataset location: {windowed_folder}")
+    print(f"Final dataset location: {final_dataset_path}")
     print("="*80)
 
 if __name__ == "__main__":
-    main() 
+    main(src_root = "datasets/original_data",
+         dst_root = "datasets/original_data_yolo",
+         post_folder = "datasets/original_data_yolo/post", 
+         window_size = 512, 
+         keep_ratio = 0.2) 
