@@ -1,5 +1,6 @@
 import os
 from clearml import Dataset
+import shutil
 
 def check_and_download_dataset(dataset_name: str, project_name: str, local_path: str) -> bool:
     """
@@ -35,7 +36,25 @@ def check_and_download_dataset(dataset_name: str, project_name: str, local_path:
             return False
         
         print(f"Downloading dataset {dataset_name} from ClearML...")
-        dataset.get_local_copy(local_path)
+        
+        # Create the directory if it doesn't exist
+        os.makedirs(local_path, exist_ok=True)
+        
+        # Download to a temporary location first
+        temp_path = dataset.get_local_copy()
+        
+        # Move contents from temp location to desired location
+        for item in os.listdir(temp_path):
+            s = os.path.join(temp_path, item)
+            d = os.path.join(local_path, item)
+            if os.path.isdir(s):
+                shutil.move(s, d)
+            else:
+                shutil.copy2(s, d)
+        
+        # Clean up temporary directory
+        shutil.rmtree(temp_path)
+        
         print(f"Dataset downloaded successfully to {local_path}")
         return True
     except Exception as e:
