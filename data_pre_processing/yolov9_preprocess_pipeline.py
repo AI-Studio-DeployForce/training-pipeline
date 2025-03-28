@@ -672,8 +672,14 @@ class PreprocessingPipeline:
         
         # Run preprocessing pipeline steps
         current_folder = self.config.post_folder
-        for step in self.steps:
-            current_folder = step.execute()
+        for i, step in enumerate(self.steps):
+            if isinstance(step, ImageWindower):
+                # After ImageWindower, use the new windowed dataset folder
+                current_folder = step.execute()
+                # Update config's post_folder for subsequent steps
+                self.config.post_folder = current_folder
+            else:
+                current_folder = step.execute()
         
         # Move contents to final dataset location
         self._move_to_final_location(current_folder)

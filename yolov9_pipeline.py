@@ -151,7 +151,7 @@ def base_train_yolov9(dataset_id):
     # 2) Define default hyperparams
     default_params = {
         "data_config": "./data.yaml",
-        "model_config": "./best.pt",
+        "model_config": "yolov9_architecture.yaml",
         "epochs": 50,
         "img_size": 512,
         "batch_size": 8,
