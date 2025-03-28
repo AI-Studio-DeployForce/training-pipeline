@@ -747,10 +747,12 @@ class PreprocessingPipeline:
     
     def _move_to_final_location(self, current_folder: str) -> None:
         """Move processed data to final dataset location."""
-        print(f"\nMoving contents to: {self.config.dst_root}")
+        datasets_dir = "datasets"
+        dataset_dir = os.path.join(datasets_dir, "dataset")
+        print(f"\nMoving contents to: {dataset_dir}")
         for item in os.listdir(current_folder):
             s = os.path.join(current_folder, item)
-            d = os.path.join(self.config.dst_root, item)
+            d = os.path.join(dataset_dir, item)
             if os.path.isdir(s):
                 shutil.move(s, d)
             else:

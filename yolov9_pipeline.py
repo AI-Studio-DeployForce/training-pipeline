@@ -3,6 +3,7 @@ from clearml.automation.controller import PipelineDecorator
 from clearml.automation import HyperParameterOptimizer, UniformParameterRange
 from clearml.automation.optuna import OptimizerOptuna
 from ultralytics import YOLO
+import os
 
 # ------------------------
 # STEP 1: Dataset versioning
@@ -15,7 +16,34 @@ def version_dataset():
         dataset_tags=["version1"]
     )
 
-    print("Adding dataset files...")
+    print("Checking for dataset changes...")
+    
+    # Get the previous version if it exists
+    prev_dataset = Dataset.get(dataset_name="YOLOv9_Dataset", dataset_project="YOLOv9_Training", only_completed=True)
+    
+    if prev_dataset is not None:
+        print(f"Found previous version: {prev_dataset.id}")
+        
+        # Get the list of files from both versions
+        current_files = set()
+        for root, _, files in os.walk("./datasets/original_data"):
+            for file in files:
+                file_path = os.path.join(root, file)
+                rel_path = os.path.relpath(file_path, "./datasets/original_data")
+                current_files.add(rel_path)
+        
+        prev_files = set()
+        for file_path in prev_dataset.list_files():
+            # The file_path is already a relative path string
+            prev_files.add(file_path)
+        
+        # Check if files have changed
+        if current_files == prev_files:
+            print("No changes detected in dataset files. Skipping upload...")
+            dataset_id = prev_dataset.id
+            return dataset_id
+    
+    print("Changes detected in dataset files. Adding new files...")
     dataset.add_files(path="./datasets/original_data")
 
     print("Uploading dataset files to ClearML storage...")
@@ -50,6 +78,38 @@ def preprocess_dataset(dataset_id):
          keep_ratio = 0.2)
     
     print("Preprocessing completed successfully")
+    
+    # Check for previous processed dataset version
+    print("Checking for processed dataset changes...")
+    prev_processed_dataset = Dataset.get(
+        dataset_name="YOLOv9_Processed_Dataset",
+        dataset_project="YOLOv9_Training",
+        only_completed=True
+    )
+    
+    if prev_processed_dataset is not None:
+        print(f"Found previous processed version: {prev_processed_dataset.id}")
+        
+        # Get the list of files from both versions
+        current_files = set()
+        for root, _, files in os.walk("./datasets/dataset"):
+            for file in files:
+                file_path = os.path.join(root, file)
+                rel_path = os.path.relpath(file_path, "./datasets/dataset")
+                current_files.add(rel_path)
+        
+        prev_files = set()
+        for file_path in prev_processed_dataset.list_files():
+            # The file_path is already a relative path string
+            prev_files.add(file_path)
+        
+        # Check if files have changed
+        if current_files == prev_files:
+            print("No changes detected in processed dataset files. Skipping upload...")
+            processed_dataset_id = prev_processed_dataset.id
+            return processed_dataset_id
+    
+    print("Changes detected in processed dataset files. Creating new version...")
     
     # Version the processed dataset
     processed_dataset = Dataset.create(
