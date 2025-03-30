@@ -87,7 +87,7 @@ def preprocess_dataset(dataset_id):
     main(src_root = dataset_path,  # Use the local dataset path
          dst_root = "datasets/original_data_yolo",
          post_folder = "datasets/original_data_yolo/post", 
-         window_size = 512, 
+         window_size = 256, 
          keep_ratio = 0.2)
     
     print("Preprocessing completed successfully")
@@ -165,9 +165,9 @@ def base_train_yolov9(dataset_id):
     default_params = {
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
-        "epochs": 50,
-        "img_size": 512,
-        "batch_size": 8,
+        "epochs": 80,
+        "img_size": 256,
+        "batch_size": 32,
         "lr0": 0.001,          # initial learning rate
         "lrf": 0.1,         # final OneCycleLR learning rate
         "momentum": 0.9,    # SGD momentum / Adam beta1
