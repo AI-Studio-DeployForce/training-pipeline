@@ -165,7 +165,7 @@ def base_train_yolov9(dataset_id):
     default_params = {
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
-        "epochs": 80,
+        "epochs": 100,
         "img_size": 256,
         "batch_size": 32,
         "lr0": 0.001,          # initial learning rate
