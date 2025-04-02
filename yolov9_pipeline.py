@@ -165,6 +165,7 @@ def base_train_yolov9(dataset_id):
     default_params = {
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
+        "patience": 20,
         "epochs": 100,
         "img_size": 256,
         "batch_size": 32,
@@ -230,6 +231,7 @@ def base_train_yolov9(dataset_id):
     from ultralytics import YOLO
     model = YOLO(params["model_config"])
     results = model.train(
+        patience=params["patience"],
         data=params["data_config"],
         epochs=params["epochs"],
         imgsz=params["img_size"],

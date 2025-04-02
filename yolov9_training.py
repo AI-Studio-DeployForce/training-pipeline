@@ -9,7 +9,7 @@ task = Task.init(project_name='YOLOv9_Best_Training', task_name='Train_Best_YOLO
 
 # Define training parameters
 data_config = './data.yaml'  # YAML file with dataset configuration (train/val paths, classes, etc.)
-model_config = './runs/segment/train16/weights/best.pt'                # Your YOLOv9 configuration file (ensure this file exists or modify accordingly)
+model_config = 'best.pt'                # Your YOLOv9 configuration file (ensure this file exists or modify accordingly)
 epochs = 150                                 # Number of training epochs
 img_size = 256                              # Image size (can adjust based on your requirements)
 
@@ -21,6 +21,7 @@ model = YOLO(model_config)
 results = model.train(data=data_config,
                         epochs=epochs,
                         imgsz=img_size,
+                        patience=20,
                         batch=16,
                         lr0=0.00332871212734676,          # initial learning rate
                         lrf=0.287516089357777,          # final OneCycleLR learning rate

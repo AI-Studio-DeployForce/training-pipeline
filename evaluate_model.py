@@ -9,21 +9,21 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 # ------------------------------------------------------------------------
 # CONFIG: Folder paths for big 1024x1024 images and their .txt labels
 # ------------------------------------------------------------------------
-images_dir = "/home/diego/Documents/master/S4/AI_studio/yolov9-building-evaluation/yolov9/data/dataset_post/test/images"  # Folder with 1024x1024 .png images
-labels_dir = "/home/diego/Documents/master/S4/AI_studio/yolov9-building-evaluation/yolov9/data/dataset_post/test/labels"  # Folder with corresponding .txt labels
+images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/images"  # Folder with 1024x1024 .png images
+labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/labels"  # Folder with corresponding .txt labels
 
 # Temporary folder for 256x256 tiles
 temp_dir = "temp_tiles"
 os.makedirs(temp_dir, exist_ok=True)
 
 # Folder where we will save final masks
-predictions_dir = "predictions_final"
+predictions_dir = "predictions_final_256_new"
 os.makedirs(predictions_dir, exist_ok=True)
 
 # ------------------------------------------------------------------------
 # CONFIG: Load segmentation model (must be YOLO-seg)
 # ------------------------------------------------------------------------
-model = YOLO("best.pt")  # e.g. YOLOv9-seg model
+model = YOLO("best_256_new.pt")  # e.g. YOLOv9-seg model
 
 # ------------------------------------------------------------------------
 # COLOR MAPPING (BGR) for each class
@@ -198,6 +198,11 @@ for idx, image_file in enumerate(all_image_files):
     #    Only show every 50th image
     # -------------------------------
     if idx % 50 == 0:
+        # Create visualization directory if it doesn't exist
+        vis_dir = "visualization_results"
+        os.makedirs(vis_dir, exist_ok=True)
+        
+        # Save the visualization
         plt.figure(figsize=(18, 6))
 
         # Original big image
@@ -219,7 +224,13 @@ for idx, image_file in enumerate(all_image_files):
         plt.axis("off")
 
         plt.tight_layout()
-        plt.show()
+        
+        # Save the figure
+        save_path = os.path.join(vis_dir, f"visualization_{idx}.png")
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        plt.close()  # Close the figure to free memory
+        
+        print(f"Saved visualization to {save_path}")
 
     # -------------------------------
     # 7) Save final masks to predictions_final folder
