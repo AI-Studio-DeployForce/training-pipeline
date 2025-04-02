@@ -7,17 +7,22 @@ from ultralytics import YOLO
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 # ------------------------------------------------------------------------
+# CONFIG: Flag to control image saving behavior
+# ------------------------------------------------------------------------
+skip_save = True  # When True, only saves visualization images every 50 iterations
+
+# ------------------------------------------------------------------------
 # CONFIG: Folder paths for big 1024x1024 images and their .txt labels
 # ------------------------------------------------------------------------
-images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/images"  # Folder with 1024x1024 .png images
-labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/labels"  # Folder with corresponding .txt labels
+images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/images"  # Folder with 1024x1024 .png images
+labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/labels"  # Folder with corresponding .txt labels
 
 # Temporary folder for 256x256 tiles
 temp_dir = "temp_tiles"
 os.makedirs(temp_dir, exist_ok=True)
 
 # Folder where we will save final masks
-predictions_dir = "predictions_final_256_new"
+predictions_dir = "predictions_final_256_new_pre"
 os.makedirs(predictions_dir, exist_ok=True)
 
 # ------------------------------------------------------------------------
@@ -235,10 +240,11 @@ for idx, image_file in enumerate(all_image_files):
     # -------------------------------
     # 7) Save final masks to predictions_final folder
     # -------------------------------
-    gt_outfile = os.path.join(predictions_dir, f"{base_name}_gt_mask.png")
-    pred_outfile = os.path.join(predictions_dir, f"{base_name}_pred_mask.png")
-    cv2.imwrite(gt_outfile, gt_mask)
-    cv2.imwrite(pred_outfile, pred_mask)
+    if not skip_save or idx % 50 == 0:
+        gt_outfile = os.path.join(predictions_dir, f"{base_name}_gt_mask.png")
+        pred_outfile = os.path.join(predictions_dir, f"{base_name}_pred_mask.png")
+        cv2.imwrite(gt_outfile, gt_mask)
+        cv2.imwrite(pred_outfile, pred_mask)
 
 # ------------------------------------------------------------------------
 # After processing all images, remove temp folder
