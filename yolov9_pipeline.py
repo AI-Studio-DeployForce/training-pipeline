@@ -87,8 +87,10 @@ def preprocess_dataset(dataset_id):
     main(src_root = dataset_path,  # Use the local dataset path
          dst_root = "datasets/original_data_yolo",
          post_folder = "datasets/original_data_yolo/post", 
+         pre_folder = "datasets/original_data_yolo/pre", 
          window_size = 256, 
-         keep_ratio = 0.2)
+         keep_ratio = 0.2,
+         process_folder = "post")
     
     print("Preprocessing completed successfully")
     

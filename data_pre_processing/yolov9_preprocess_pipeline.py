@@ -16,11 +16,13 @@ class PipelineConfig:
     src_root: str = "datasets/original_data"
     dst_root: str = "datasets/original_data_yolo"
     post_folder: str = "datasets/original_data_yolo/post"
+    pre_folder: str = "datasets/original_data_yolo/pre"
     window_size: int = 512
     keep_ratio: float = 0.2
     default_width: int = 1024
     default_height: int = 1024
     default_class_id: int = 0
+    process_folder: str = "post"  # New parameter to specify which folder to process
 
 class DataProcessor:
     """Handles data processing utilities like polygon parsing and format conversion."""
@@ -117,23 +119,37 @@ class DataCopier(PipelineStep):
         for subset_post, subset_data in subset_mapping.items():
             self._process_subset(subset_post, subset_data)
         
-        print(f"Step 1 completed: Data copied to {self.config.post_folder}")
-        return self.config.post_folder
+        print(f"Step 1 completed: Data copied to {self.config.post_folder} and {self.config.pre_folder}")
+        
+        # Return the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            return self.config.pre_folder
+        else:
+            return self.config.post_folder
     
     def _process_subset(self, subset_post: str, subset_data: str) -> None:
         """Process a single subset of the data."""
+        # Process post folder
         post_labels_folder = os.path.join(self.config.post_folder, subset_post, "labels")
-        dest_images_folder = os.path.join(self.config.post_folder, subset_post, "images")
-        dest_targets_folder = os.path.join(self.config.post_folder, subset_post, "targets")
+        post_dest_images_folder = os.path.join(self.config.post_folder, subset_post, "images")
+        post_dest_targets_folder = os.path.join(self.config.post_folder, subset_post, "targets")
         
-        os.makedirs(dest_images_folder, exist_ok=True)
-        os.makedirs(dest_targets_folder, exist_ok=True)
+        # Process pre folder
+        pre_labels_folder = os.path.join(self.config.pre_folder, subset_post, "labels")
+        pre_dest_images_folder = os.path.join(self.config.pre_folder, subset_post, "images")
+        pre_dest_targets_folder = os.path.join(self.config.pre_folder, subset_post, "targets")
+        
+        # Create all necessary directories
+        for folder in [post_dest_images_folder, post_dest_targets_folder,
+                      pre_dest_images_folder, pre_dest_targets_folder]:
+            os.makedirs(folder, exist_ok=True)
         
         data_images_folder = os.path.join(self.config.src_root, subset_data, "images")
         data_targets_folder = os.path.join(self.config.src_root, subset_data, "targets")
         
         print(f"  Processing subset: {subset_post} (data folder: {subset_data})")
         
+        # Process post folder
         for label_file in os.listdir(post_labels_folder):
             if not label_file.endswith(".txt"):
                 continue
@@ -141,7 +157,17 @@ class DataCopier(PipelineStep):
             base_name = os.path.splitext(label_file)[0]
             self._copy_files(base_name, subset_post, subset_data, 
                            data_images_folder, data_targets_folder,
-                           dest_images_folder, dest_targets_folder)
+                           post_dest_images_folder, post_dest_targets_folder)
+        
+        # Process pre folder
+        for label_file in os.listdir(pre_labels_folder):
+            if not label_file.endswith(".txt"):
+                continue
+            
+            base_name = os.path.splitext(label_file)[0]
+            self._copy_files(base_name, subset_post, subset_data, 
+                           data_images_folder, data_targets_folder,
+                           pre_dest_images_folder, pre_dest_targets_folder)
     
     def _copy_files(self, base_name: str, subset_post: str, subset_data: str,
                    data_images_folder: str, data_targets_folder: str,
@@ -180,39 +206,65 @@ class DataSubsampler(PipelineStep):
         for subset in subsets:
             self._process_subset(subset)
         
-        print(f"Step 2 completed: Dataset subsampled in {self.config.post_folder}")
-        return self.config.post_folder
+        print(f"Step 2 completed: Dataset subsampled in {self.config.post_folder} and {self.config.pre_folder}")
+        
+        # Return the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            return self.config.pre_folder
+        else:
+            return self.config.post_folder
     
     def _process_subset(self, subset: str) -> None:
         """Process a single subset for subsampling."""
-        images_folder = os.path.join(self.config.post_folder, subset, "images")
-        targets_folder = os.path.join(self.config.post_folder, subset, "targets")
-        labels_folder = os.path.join(self.config.post_folder, subset, "labels")
+        # Get post folder paths
+        post_images_folder = os.path.join(self.config.post_folder, subset, "images")
+        post_targets_folder = os.path.join(self.config.post_folder, subset, "targets")
+        post_labels_folder = os.path.join(self.config.post_folder, subset, "labels")
         
-        image_files = [f for f in os.listdir(images_folder) if f.endswith(".png")]
-        total_images = len(image_files)
+        # Get pre folder paths
+        pre_images_folder = os.path.join(self.config.pre_folder, subset, "images")
+        pre_targets_folder = os.path.join(self.config.pre_folder, subset, "targets")
+        pre_labels_folder = os.path.join(self.config.pre_folder, subset, "labels")
+        
+        # Get list of post images
+        post_image_files = [f for f in os.listdir(post_images_folder) if f.endswith(".png")]
+        total_images = len(post_image_files)
         delete_count = int(total_images * 0.4)
         
-        print(f"  Subset '{subset}': Deleting {delete_count} out of {total_images} images.")
+        print(f"  Subset '{subset}': Deleting {delete_count} out of {total_images} image pairs.")
         
-        files_to_delete = random.sample(image_files, delete_count)
+        # Randomly select images to delete from post folder
+        files_to_delete = random.sample(post_image_files, delete_count)
         
-        for image_file in files_to_delete:
-            base_name = os.path.splitext(image_file)[0]
-            self._delete_files(base_name, subset)
+        for post_image_file in files_to_delete:
+            # Get the base name without the post_disaster part and .png extension
+            base_name = post_image_file.replace("_post_disaster.png", "")
+            
+            # Delete post files
+            self._delete_files(base_name + "_post_disaster", subset, 
+                             post_images_folder, post_targets_folder, post_labels_folder)
+            
+            # Delete corresponding pre files
+            self._delete_files(base_name + "_pre_disaster", subset,
+                             pre_images_folder, pre_targets_folder, pre_labels_folder)
 
-    def _delete_files(self, base_name: str, subset: str) -> None:
+    def _delete_files(self, base_name: str, subset: str,
+                     images_folder: str, targets_folder: str, labels_folder: str) -> None:
         """Delete image, target, and label files for a given base name."""
-        folders = {
-            "images": os.path.join(self.config.post_folder, subset, "images"),
-            "targets": os.path.join(self.config.post_folder, subset, "targets"),
-            "labels": os.path.join(self.config.post_folder, subset, "labels")
-        }
+        # Delete image
+        image_path = os.path.join(images_folder, f"{base_name}.png")
+        if os.path.exists(image_path):
+            os.remove(image_path)
         
-        for folder_type, folder_path in folders.items():
-            file_path = os.path.join(folder_path, f"{base_name}{'.png' if folder_type != 'labels' else '.txt'}")
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        # Delete target
+        target_path = os.path.join(targets_folder, f"{base_name}.png")
+        if os.path.exists(target_path):
+            os.remove(target_path)
+        
+        # Delete label
+        label_path = os.path.join(labels_folder, f"{base_name}.txt")
+        if os.path.exists(label_path):
+            os.remove(label_path)
 
 class ImageWindower(PipelineStep):
     """Step 3: Slice images and targets into smaller windows."""
@@ -222,13 +274,19 @@ class ImageWindower(PipelineStep):
         print(f"STEP 3: Executing image windowing (size: {self.config.window_size}×{self.config.window_size})")
         print("="*80)
         
-        dest_dir = self.config.post_folder + f"_{self.config.window_size}"
+        # Use the selected folder (pre or post) based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            source_folder = self.config.pre_folder
+        else:
+            source_folder = self.config.post_folder
+            
+        dest_dir = source_folder + f"_{self.config.window_size}"
         subsets = ["train", "test", "valid"]
         
         self._create_destination_directories(dest_dir, subsets)
         
         for subset in subsets:
-            self._process_subset(subset, dest_dir)
+            self._process_subset(subset, dest_dir, source_folder)
         
         print(f"Step 3 completed: Images windowed and saved to {dest_dir}")
         return dest_dir
@@ -239,10 +297,10 @@ class ImageWindower(PipelineStep):
             for folder in ["images", "targets", "labels"]:
                 os.makedirs(os.path.join(dest_dir, subset, folder), exist_ok=True)
     
-    def _process_subset(self, subset: str, dest_dir: str) -> None:
+    def _process_subset(self, subset: str, dest_dir: str, source_folder: str) -> None:
         """Process a single subset for windowing."""
-        images_dir = os.path.join(self.config.post_folder, subset, "images")
-        targets_dir = os.path.join(self.config.post_folder, subset, "targets")
+        images_dir = os.path.join(source_folder, subset, "images")
+        targets_dir = os.path.join(source_folder, subset, "targets")
         
         out_images_dir = os.path.join(dest_dir, subset, "images")
         out_targets_dir = os.path.join(dest_dir, subset, "targets")
@@ -372,7 +430,13 @@ class DatasetAnalyzer(PipelineStep):
     
     def _analyze_subset(self, subset: str) -> Dict[str, int]:
         """Analyze a single subset of the dataset."""
-        label_dir = os.path.join(self.config.post_folder, subset, "labels")
+        # Use the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        label_dir = os.path.join(folder, subset, "labels")
         if not os.path.exists(label_dir):
             print(f"  [WARNING] {label_dir} does not exist! Skipping...")
             return {'total': 0, 'empty': 0, 'nonempty': 0}
@@ -422,14 +486,26 @@ class EmptyLabelCleaner(PipelineStep):
         for subset in subsets:
             self._process_subset(subset)
         
-        print(f"Step 5 completed: Empty labels deleted from {self.config.post_folder}")
-        return self.config.post_folder
+        # Return the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        print(f"Step 5 completed: Empty labels deleted from {folder}")
+        return folder
     
     def _process_subset(self, subset: str) -> None:
         """Process a single subset for empty label cleaning."""
-        labels_dir = os.path.join(self.config.post_folder, subset, "labels")
-        images_dir = os.path.join(self.config.post_folder, subset, "images")
-        targets_dir = os.path.join(self.config.post_folder, subset, "targets")
+        # Use the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        labels_dir = os.path.join(folder, subset, "labels")
+        images_dir = os.path.join(folder, subset, "images")
+        targets_dir = os.path.join(folder, subset, "targets")
         
         if not os.path.isdir(labels_dir):
             print(f"  [WARNING] Labels directory not found: {labels_dir}. Skipping {subset}.")
@@ -496,14 +572,26 @@ class InvalidLabelCleaner(PipelineStep):
         for subset in subsets:
             self._process_subset(subset)
         
-        print(f"Step 7 completed: Invalid labels removed from {self.config.post_folder}")
-        return self.config.post_folder
+        # Return the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        print(f"Step 7 completed: Invalid labels removed from {folder}")
+        return folder
     
     def _process_subset(self, subset: str) -> None:
         """Process a single subset for invalid label cleaning."""
-        labels_dir = os.path.join(self.config.post_folder, subset, "labels")
-        images_dir = os.path.join(self.config.post_folder, subset, "images")
-        targets_dir = os.path.join(self.config.post_folder, subset, "targets")
+        # Use the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        labels_dir = os.path.join(folder, subset, "labels")
+        images_dir = os.path.join(folder, subset, "images")
+        targets_dir = os.path.join(folder, subset, "targets")
         
         if not os.path.isdir(labels_dir):
             print(f"  [WARNING] Labels directory not found: {labels_dir}. Skipping {subset}.")
@@ -567,12 +655,24 @@ class AnnotationFixer(PipelineStep):
         for subset in subsets:
             self._process_subset(subset)
         
-        print(f"Step 8 completed: Annotations fixed in {self.config.post_folder}")
-        return self.config.post_folder
+        # Return the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        print(f"Step 8 completed: Annotations fixed in {folder}")
+        return folder
     
     def _process_subset(self, subset: str) -> None:
         """Process a single subset for annotation fixing."""
-        labels_dir = os.path.join(self.config.post_folder, subset, "labels")
+        # Use the selected folder based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            folder = self.config.pre_folder
+        else:
+            folder = self.config.post_folder
+            
+        labels_dir = os.path.join(folder, subset, "labels")
         if not os.path.isdir(labels_dir):
             print(f"  [WARNING] {labels_dir} does not exist. Skipping {subset}")
             return
@@ -671,13 +771,21 @@ class PreprocessingPipeline:
         self._setup_dataset_folder()
         
         # Run preprocessing pipeline steps
-        current_folder = self.config.post_folder
+        # Determine which folder to use based on process_folder parameter
+        if self.config.process_folder.lower() == "pre":
+            current_folder = self.config.pre_folder
+        else:
+            current_folder = self.config.post_folder
+            
         for i, step in enumerate(self.steps):
             if isinstance(step, ImageWindower):
                 # After ImageWindower, use the new windowed dataset folder
                 current_folder = step.execute()
-                # Update config's post_folder for subsequent steps
-                self.config.post_folder = current_folder
+                # Update config's folder for subsequent steps
+                if self.config.process_folder.lower() == "pre":
+                    self.config.pre_folder = current_folder
+                else:
+                    self.config.post_folder = current_folder
             else:
                 current_folder = step.execute()
         
@@ -695,6 +803,7 @@ class PreprocessingPipeline:
         print(f"PREPROCESSING PIPELINE COMPLETED in {total_time:.2f} seconds")
         print("="*80)
         print(f"Final dataset location: {self.config.dst_root}")
+        print(f"Processed folder: {self.config.process_folder}")
         print("="*80)
     
     def _process_directory(self, split: str) -> None:
@@ -768,11 +877,13 @@ def main(
     src_root: str = "datasets/original_data",
     dst_root: str = "datasets/original_data_yolo",
     post_folder: str = "datasets/original_data_yolo/post",
-    window_size: int = 512,
+    pre_folder: str = "datasets/original_data_yolo/pre",
+    window_size: int = 256,
     keep_ratio: float = 0.2,
     default_width: int = 1024,
     default_height: int = 1024,
-    default_class_id: int = 0
+    default_class_id: int = 0,
+    process_folder: str = "pre"
 ) -> None:
     """
     Main entry point for the preprocessing pipeline.
@@ -781,21 +892,25 @@ def main(
         src_root: Root directory containing source data
         dst_root: Root directory for YOLO format data
         post_folder: Path to post-disaster data folder
+        pre_folder: Path to pre-disaster data folder
         window_size: Size of the windows for image splitting
         keep_ratio: Ratio of empty labels to keep
         default_width: Default image width if not specified in metadata
         default_height: Default image height if not specified in metadata
         default_class_id: Default class ID for pre-disaster buildings
+        process_folder: Which folder to process ('pre' or 'post')
     """
     config = PipelineConfig(
         src_root=src_root,
         dst_root=dst_root,
         post_folder=post_folder,
+        pre_folder=pre_folder,
         window_size=window_size,
         keep_ratio=keep_ratio,
         default_width=default_width,
         default_height=default_height,
-        default_class_id=default_class_id
+        default_class_id=default_class_id,
+        process_folder=process_folder
     )
     pipeline = PreprocessingPipeline(config)
     pipeline.run()
@@ -808,7 +923,9 @@ if __name__ == "__main__":
                       help="Root directory for YOLO format data")
     parser.add_argument("--post-folder", default="datasets/original_data_yolo/post",
                       help="Path to post-disaster data folder")
-    parser.add_argument("--window-size", type=int, default=512,
+    parser.add_argument("--pre-folder", default="datasets/original_data_yolo/pre",
+                      help="Path to pre-disaster data folder")
+    parser.add_argument("--window-size", type=int, default=256,
                       help="Size of the windows for image splitting")
     parser.add_argument("--keep-ratio", type=float, default=0.2,
                       help="Ratio of empty labels to keep")
@@ -818,6 +935,8 @@ if __name__ == "__main__":
                       help="Default image height if not specified in metadata")
     parser.add_argument("--default-class-id", type=int, default=0,
                       help="Default class ID for pre-disaster buildings")
+    parser.add_argument("--process-folder", choices=["pre", "post"], default="pre",
+                      help="Which folder to process for the rest of the pipeline (pre or post)")
     
     args = parser.parse_args()
     main(**vars(args)) 
