@@ -9,7 +9,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 # ------------------------------------------------------------------------
 # CONFIG: Flag to control image saving behavior
 # ------------------------------------------------------------------------
-skip_save = True  # When True, only saves visualization images every 50 iterations
+skip_save = False  # When True, only saves visualization images every 50 iterations
 
 # ------------------------------------------------------------------------
 # CONFIG: Folder paths for big 1024x1024 images and their .txt labels
@@ -28,7 +28,7 @@ os.makedirs(predictions_dir, exist_ok=True)
 # ------------------------------------------------------------------------
 # CONFIG: Load segmentation model (must be YOLO-seg)
 # ------------------------------------------------------------------------
-model = YOLO("best_256_new.pt")  # e.g. YOLOv9-seg model
+model = YOLO("best_localization.pt")  # e.g. YOLOv9-seg model
 
 # ------------------------------------------------------------------------
 # COLOR MAPPING (BGR) for each class
@@ -155,7 +155,7 @@ for idx, image_file in enumerate(all_image_files):
             cv2.imwrite(tile_path, tile)
 
             # Run inference on the tile
-            results = model.predict(tile_path, conf=0.2, iou=0.6)
+            results = model.predict(tile_path, conf=0.8, iou=0.6)
 
             # Merge tile predictions back into the big pred_mask
             if results[0].masks is not None:

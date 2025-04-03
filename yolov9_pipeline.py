@@ -228,7 +228,7 @@ def base_train_yolov9(dataset_id):
     params["epochs"] = int(float(params["epochs"]))
     params["img_size"] = int(float(params["img_size"]))
     params["batch_size"] = int(float(params["batch_size"]))
-
+    params["patience"] = int(float(params["patience"]))
     # 7) Train with Ultralytics
     from ultralytics import YOLO
     model = YOLO(params["model_config"])
