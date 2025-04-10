@@ -9,29 +9,18 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
 from tqdm import tqdm
 
-# ------------------------------------------------------------------------
-# CONFIG: Flag to control image saving behavior
-# ------------------------------------------------------------------------
-skip_save = True  # When True, only saves visualization images every 50 iterations
 
 # ------------------------------------------------------------------------
 # CONFIG: Folder paths for big 1024x1024 images and their .txt labels
 # ------------------------------------------------------------------------
-images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/images"  # Folder with 1024x1024 .png images
-labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/labels"  # Folder with corresponding .txt labels
+images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/images"  # Folder with 1024x1024 .png images
+labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/labels"  # Folder with corresponding .txt labels
 
-# Temporary folder for 256x256 tiles
-temp_dir = "temp_tiles"
-os.makedirs(temp_dir, exist_ok=True)
-
-# Folder where we will save final masks
-predictions_dir = "predictions_final_256_new_pre"
-os.makedirs(predictions_dir, exist_ok=True)
 
 # ------------------------------------------------------------------------
 # CONFIG: Load segmentation model (must be YOLO-seg)
 # ------------------------------------------------------------------------
-model = YOLO("best_localization.pt")  # e.g. YOLOv9-seg model
+model = YOLO("best_256_new.pt")  # e.g. YOLOv9-seg model
 
 # ------------------------------------------------------------------------
 # COLOR MAPPING (BGR) for each class
@@ -475,7 +464,7 @@ def main():
     plt.close()
 
     # Clean up
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    # shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     main()

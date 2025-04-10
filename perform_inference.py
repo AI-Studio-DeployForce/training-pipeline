@@ -14,8 +14,8 @@ skip_save = False  # When True, only saves visualization images every 50 iterati
 # ------------------------------------------------------------------------
 # CONFIG: Folder paths for big 1024x1024 images and their .txt labels
 # ------------------------------------------------------------------------
-images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/images"  # Folder with 1024x1024 .png images
-labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/labels"  # Folder with corresponding .txt labels
+images_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/images"  # Folder with 1024x1024 .png images
+labels_dir = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/post/test/labels"  # Folder with corresponding .txt labels
 
 # Temporary folder for 256x256 tiles
 temp_dir = "temp_tiles"
@@ -28,7 +28,7 @@ os.makedirs(predictions_dir, exist_ok=True)
 # ------------------------------------------------------------------------
 # CONFIG: Load segmentation model (must be YOLO-seg)
 # ------------------------------------------------------------------------
-model = YOLO("best_localization.pt")  # e.g. YOLOv9-seg model
+model = YOLO("best_256_new.pt")  # e.g. YOLOv9-seg model
 
 # ------------------------------------------------------------------------
 # COLOR MAPPING (BGR) for each class
