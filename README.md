@@ -1,135 +1,48 @@
-# YOLOv9 Training Pipeline
+# Building Damage Assessment Model Evaluator
 
-This repository contains a comprehensive training pipeline for YOLOv9 object detection model, specifically designed for damage classification in images. The pipeline includes dataset versioning, model training, hyperparameter optimization, and model evaluation capabilities.
-
-## Project Overview
-
-This project implements an end-to-end training pipeline for YOLOv9, a state-of-the-art object detection model, with the following key features:
-
-- Automated dataset versioning and management using ClearML
-- End-to-end training pipeline with configurable components
-- Hyperparameter optimization using Optuna
-- Model evaluation and performance metrics
-- Support for damage classification with 4 classes:
-  - No-damage
-  - Minor-damage
-  - Major-damage
-  - Destroyed
+This package evaluates a YOLO segmentation model for building damage assessment, calculating precision, recall, and F1 scores across various confidence thresholds.
 
 ## Project Structure
 
-```
-.
-├── datasets/               # Dataset directory
-├── predictions_final/     # Model predictions output
-├── runs/                  # Training runs and logs
-├── data.yaml             # Dataset configuration
-├── yolov9_architecture.yaml  # Model architecture configuration
-├── yolov9_pipeline.py    # Main pipeline implementation
-├── yolov9_training.py    # Training script
-├── evaluate_model.py     # Model evaluation script
-├── best.pt              # Best trained model weights
-└── yolo11n.pt          # Pre-trained model weights
-```
+The codebase is organized into several modules:
 
-## Prerequisites
-
-- Python 3.x
-- PyTorch
-- Ultralytics YOLO
-- ClearML
-- Optuna (for hyperparameter optimization)
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-```
-
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+- `config.py` - Configuration settings for paths, model, and visualization
+- `utils.py` - Utility functions for image processing and mask handling
+- `model.py` - Model loading and inference functionality
+- `metrics.py` - Metrics calculation and aggregation
+- `visualization.py` - Plotting and results visualization
+- `evaluator.py` - Core evaluation logic
+- `evaluate_model.py` - Main script to run the evaluation
 
 ## Usage
 
-### 1. Dataset Preparation
+1. Adjust settings in `config.py` to match your environment:
+   - Set `IMAGES_DIR` and `LABELS_DIR` to your test image and label directories
+   - Set `MODEL_PATH` to your YOLO model path
 
-Place your dataset in the following structure:
-```
-datasets/
-└── dataset/
-    ├── train/
-    │   ├── images/
-    │   └── labels/
-    ├── valid/
-    │   ├── images/
-    │   └── labels/
-    └── test/
-        ├── images/
-        └── labels/
-```
+2. Run the evaluation:
+   ```bash
+   python evaluate_model.py
+   ```
 
-### 2. Configuration
+3. The script will:
+   - Evaluate the model on all test images
+   - Test different confidence thresholds
+   - Calculate metrics for each class
+   - Find the optimal confidence threshold
+   - Generate performance curve plots
 
-1. Update `data.yaml` with your dataset paths and class names
-2. Configure model architecture in `yolov9_architecture.yaml` if needed
-3. Set up ClearML credentials for experiment tracking
+## Output
 
-### 3. Running the Pipeline
+- Console output with metrics for each threshold
+- `performance_curves.png` showing precision/recall curves for each class
 
-To run the complete training pipeline:
+## Requirements
 
-```bash
-python yolov9_pipeline.py
-```
-
-The pipeline will:
-1. Version your dataset
-2. Perform base model training
-3. Conduct hyperparameter optimization
-
-### 4. Model Evaluation
-
-To evaluate the trained model:
-
-```bash
-python evaluate_model.py
-```
-
-## Pipeline Components
-
-### Dataset Versioning
-- Uses ClearML for dataset versioning and management
-- Ensures reproducibility of experiments
-- Handles dataset storage and versioning
-
-### Training Pipeline
-- Implements YOLOv9 training with configurable parameters
-- Supports transfer learning from pre-trained weights
-- Includes validation and checkpointing
-
-### Hyperparameter Optimization
-- Uses Optuna for hyperparameter optimization
-- Optimizes key parameters like learning rate, batch size, and model architecture
-- Implements early stopping and model selection
-
-### Model Evaluation
-- Comprehensive evaluation metrics
-- Performance analysis on test set
-- Visualization of results
-
-## Results
-
-The trained model and evaluation results are stored in:
-- `best.pt`: Best trained model weights
-- `predictions_final/`: Model predictions and evaluation results
-- `runs/`: Training logs and metrics
-
-
-## Acknowledgments
-
-- Ultralytics for the YOLOv9 implementation
-- ClearML for experiment tracking and pipeline management
-- Optuna for hyperparameter optimization 
+- Python 3.8+
+- OpenCV
+- NumPy
+- Matplotlib
+- Ultralytics (YOLO)
+- scikit-learn
+- tqdm 
