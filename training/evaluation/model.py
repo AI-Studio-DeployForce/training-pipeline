@@ -317,8 +317,8 @@ class SegmentationModel:
                         color = CLASS_COLORS.get(int(cls_idx), (255, 255, 255))
                         cv2.fillPoly(pred_mask, [offset_polygon], color)
         pred_mask = self.apply_morphological_operations(pred_mask)
-        if POST_DISASTER:
-            pred_mask = self.majority_voting_building_damage_mask(pred_mask,3,1)
+        # if POST_DISASTER:
+        #     pred_mask = self.majority_voting_building_damage_mask(pred_mask,3,1)
         return pred_mask
         
     def predict_single_tile(self, tile, confidence_threshold):
