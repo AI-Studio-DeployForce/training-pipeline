@@ -11,11 +11,11 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 # CONFIGURATION: Define all constants here
 # ------------------------------------------------------------------------
 # Paths
-IMAGES_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/images"  # Directory containing the 1024x1024 images
-LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/labels"  # Directory containing the YOLO labels
-MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_256_new.pt"  # Path to the YOLO segmentation model
-OUTPUT_DIR = "./inference/predictions_256_damage_assesment_postprocessing"  # Directory to save prediction masks
-VIS_DIR = "./inference/visualization_256_damage_assesment_postprocessing"  # Directory to save visualizations
+IMAGES_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/pre/test/images"  # Directory containing the 1024x1024 images
+LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/pre/test/labels"  # Directory containing the YOLO labels
+MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_localization.pt"  # Path to the YOLO segmentation model
+OUTPUT_DIR = "./inference/predictions_256_localization_postprocessing"  # Directory to save prediction masks
+VIS_DIR = "./inference/visualization_256_localization_postprocessing"  # Directory to save visualizations
 TEMP_DIR = "./inference/temp_tiles"  # Temporary directory for tiles
 
 # Process settings
