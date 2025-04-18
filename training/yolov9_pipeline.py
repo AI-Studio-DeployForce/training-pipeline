@@ -375,6 +375,8 @@ def hyperparam_optimize(base_task_id):
         # Check for models registered with the task
     if best_exp_task.models:
         model_paths = []
+        print("Models item------->", best_exp_task.models)
+        print("Models item------->", best_exp_task.models.items())
         for model_name, model_info in best_exp_task.models.items():
             print(f"Found model: {model_name}")
             # Get the model object and then download it
