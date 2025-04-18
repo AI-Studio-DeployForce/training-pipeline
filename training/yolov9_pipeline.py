@@ -370,11 +370,17 @@ def hyperparam_optimize(base_task_id):
 
     # optionally download best weights
     best_exp_task = Task.get_task(task_id=best_exp_id)
-    for artifact_name, artifact_obj in best_exp_task.artifacts.items():
-        if "best" in artifact_name.lower() or "weights" in artifact_name.lower():
-            local_path = artifact_obj.get_local_copy()
-            print(f"Downloaded best model artifact '{artifact_name}' to {local_path}")
-
+    
+    # Check for models registered with the task
+    if best_exp_task.models:
+        for model_name, model_info in best_exp_task.models.items():
+            print(f"Found model: {model_name}")
+            model_path = model_info.get_local_copy()
+            print(f"Downloaded model '{model_name}' to {model_path}")
+        return model_path
+    else:
+        print("No models found in the task")
+        return None
 # ------------------------
 # Pipeline flow function
 # ------------------------
