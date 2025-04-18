@@ -6,7 +6,7 @@ LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/infere
 
 # Model configuration
 MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_256_new.pt"
-
+POST_DISASTER = True
 # Processing parameters
 TILE_SIZE = 256
 NUM_TILES = 4

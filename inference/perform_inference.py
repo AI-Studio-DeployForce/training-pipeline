@@ -442,7 +442,7 @@ class DamageSegmentation:
                         cv2.fillPoly(pred_mask, [offset_polygon], color)
         
         pred_mask = self.apply_morphological_operations(pred_mask)
-        pred_mask = self.majority_voting_building_damage_mask(pred_mask)
+        pred_mask = self.majority_voting_building_damage_mask(pred_mask,3,3)
         return pred_mask
     
     def compute_metrics(self, gt_mask, pred_mask):

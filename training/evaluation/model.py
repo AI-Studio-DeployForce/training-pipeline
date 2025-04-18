@@ -2,8 +2,9 @@ import os
 import numpy as np
 import cv2
 from ultralytics import YOLO
-from config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD
+from config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD, POST_DISASTER
 import matplotlib.pyplot as plt
+from scipy.ndimage import label
 class SegmentationModel:
     """
     Class to handle a YOLO segmentation model for building damage assessment
@@ -38,7 +39,7 @@ class SegmentationModel:
         
         return class_colors.get(tuple(color), 0)  # Default to background (0) if color not found
 
-    def post_process_prediction(self, pred_mask, visualize=False, output_dir=None):
+    def apply_morphological_operations(self, pred_mask, visualize=False, output_dir=None):
         """
         Apply morphological operations to denoise, fill holes and separate connected masks
         for each class separately, handling overlaps between classes.
@@ -203,6 +204,82 @@ class SegmentationModel:
         
         return processed_mask
 
+
+    def majority_voting_building_damage_mask(
+        self,
+        rgb_mask: np.ndarray,
+        kernel_size: int = 3,
+        dilate_iter: int = 1,
+        return_rgb: bool = True
+        ) -> np.ndarray:
+            """
+            Post‑process a YOLO‑style RGB mask so each building instance
+            has exactly one damage class (connected‑component majority vote).
+
+            Parameters
+            ----------
+            rgb_mask : np.ndarray
+                H×W×3 array with background = black (0,0,0) and one unique
+                RGB colour per damage class.
+            kernel_size : int, optional
+                Size of the square structuring element used to dilate the
+                building mask before finding connected components.
+            dilate_iter : int, optional
+                Number of dilation iterations (helps bridge 1‑pixel gaps).
+            return_rgb : bool, optional
+                If True, return an RGB mask with the same colours as the
+                input.  If False, return an integer label map where
+                0 = background and 1…K = damage classes.
+
+            Returns
+            -------
+            np.ndarray
+                Post‑processed mask in the requested format.
+            """
+            # ---------- helpers -----------------------------------------------------
+            def _rgb_to_label(img):
+                colours = np.unique(img.reshape(-1, 3), axis=0)
+                colour2id = {tuple(c): i + 1          # start at 1, reserve 0 for bg
+                            for i, c in enumerate(colours) if not np.all(c == 0)}
+                label_map = np.zeros(img.shape[:2], dtype=np.int32)
+                for col, idx in colour2id.items():
+                    label_map[np.all(img == col, axis=-1)] = idx
+                return label_map, colour2id
+
+            def _label_to_rgb(lbl, colour2id):
+                id2colour = {v: k for k, v in colour2id.items()}
+                out = np.zeros((*lbl.shape, 3), dtype=np.uint8)
+                for idx, col in id2colour.items():
+                    out[lbl == idx] = col
+                return out
+            # -----------------------------------------------------------------------
+
+            # 1)  RGB → integer label map
+            label_map, colour_map = _rgb_to_label(rgb_mask)
+
+            # 2)  Dilate the binary building mask to merge touching fragments
+            kernel = np.ones((kernel_size, kernel_size), np.uint8)
+            building_bin = (label_map > 0).astype(np.uint8)
+            building_dil = cv2.dilate(building_bin, kernel, iterations=dilate_iter)
+
+            # 3)  Connected components on the dilated mask
+            blobs, n_blobs = label(building_dil, structure=np.ones((3, 3)))
+
+            # 4)  Majority vote inside each component
+            refined = label_map.copy()
+            for b in range(1, n_blobs + 1):
+                mask = blobs == b
+                if not np.any(mask):
+                    continue
+                vals, counts = np.unique(refined[mask], return_counts=True)
+                majority_cls = vals[counts.argmax()]
+                refined[mask] = majority_cls
+
+            # 5)  Return in the requested format
+            if return_rgb:
+                return _label_to_rgb(refined, colour_map)
+            return refined
+    
     def predict_tiles(self, image, confidence_threshold):
         """
         Process a large image by dividing it into tiles
@@ -239,7 +316,9 @@ class SegmentationModel:
                         offset_polygon = offset_polygon.astype(np.int32)
                         color = CLASS_COLORS.get(int(cls_idx), (255, 255, 255))
                         cv2.fillPoly(pred_mask, [offset_polygon], color)
-        pred_mask = self.post_process_prediction(pred_mask)
+        pred_mask = self.apply_morphological_operations(pred_mask)
+        if POST_DISASTER:
+            pred_mask = self.majority_voting_building_damage_mask(pred_mask,3,2)
         return pred_mask
         
     def predict_single_tile(self, tile, confidence_threshold):

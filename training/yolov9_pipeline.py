@@ -372,12 +372,19 @@ def hyperparam_optimize(base_task_id):
     best_exp_task = Task.get_task(task_id=best_exp_id)
     
     # Check for models registered with the task
+        # Check for models registered with the task
     if best_exp_task.models:
+        model_paths = []
         for model_name, model_info in best_exp_task.models.items():
             print(f"Found model: {model_name}")
-            model_path = model_info.get_local_copy()
+            # Get the model object and then download it
+            from clearml import Model
+            model = Model(model_info)
+            model_path = model.get_local_copy()
             print(f"Downloaded model '{model_name}' to {model_path}")
-        return model_path
+            model_paths.append(model_path)
+        
+        return model_paths[0] if model_paths else None
     else:
         print("No models found in the task")
         return None
