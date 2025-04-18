@@ -1,17 +1,17 @@
 import os
 
 # Folder paths for input data
-IMAGES_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/images"
-LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/datasets/original_data_yolo/pre/test/labels"
+IMAGES_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/images"
+LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/labels"
 
 # Model configuration
-MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_localization.pt"
+MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_256_new.pt"
 
 # Processing parameters
 TILE_SIZE = 256
 NUM_TILES = 4
 CONFIDENCE_THRESHOLDS = [round(i/20, 2) for i in range(21)]  # 0 to 1 in steps of 0.05
-NUM_WORKERS = min(4, os.cpu_count())  # Limit to 4 workers max
+NUM_WORKERS = min(3, os.cpu_count())  # Limit to 4 workers max
 IOU_THRESHOLD = 0.6
 
 # Color mapping (BGR) for each class
@@ -40,5 +40,5 @@ PLOT_STYLES = {
 }
 
 # Output settings
-OUTPUT_PLOT_FILENAME = 'performance_curves.png'
+OUTPUT_PLOT_FILENAME = 'performance_curves_256.png'
 OUTPUT_PLOT_DPI = 300 
