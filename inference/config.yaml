@@ -1,0 +1,29 @@
+# Paths
+images_dir: "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/images"
+labels_dir: "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/labels"
+model_path: "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_256_new.pt"
+output_dir: "./inference/predictions_256_damage_assesment_postprocessing_final"
+vis_dir: "./inference/visualization_256_damage_assesment_postprocessing_final"
+temp_dir: "./inference/temp_tiles"
+
+# Process settings
+save_interval: 50
+conf_threshold: 0.1
+skip_save: false
+tile_size: 256
+ground_truth: false
+
+# Color mapping (BGR) for each class
+color_map:
+  0: [0, 255, 0]    # Green (No damage)
+  1: [0, 255, 255]  # Yellow (Minor damage)
+  2: [0, 165, 255]  # Orange (Major damage)
+  3: [0, 0, 255]    # Red (Destroyed)
+
+# Inverse mapping: BGR -> class index
+color_map_inverse:
+  "(0, 255, 0)": 0
+  "(0, 255, 255)": 1
+  "(0, 165, 255)": 2
+  "(0, 0, 255)": 3
+  "(255, 255, 255)": 4  # "Unknown" class 
