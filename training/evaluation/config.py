@@ -1,11 +1,11 @@
 import os
 
 # Folder paths for input data
-IMAGES_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/images"
-LABELS_DIR = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/inference/datasets/original_data_yolo/post/test/labels"
+IMAGES_DIR = "datasets/original_data_yolo/post/test/images"
+LABELS_DIR = "datasets/original_data_yolo/post/test/labels"
 
 # Model configuration
-MODEL_PATH = "/home/diego/Documents/master/S4/AI_studio/training-pipeline/best_256_new.pt"
+MODEL_PATH = "training-pipeline/best.pt"
 POST_DISASTER = True
 # Processing parameters
 TILE_SIZE = 256

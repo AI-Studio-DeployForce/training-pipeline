@@ -4,20 +4,19 @@ from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 import gc
 
-from config import IMAGES_DIR, LABELS_DIR, CONFIDENCE_THRESHOLDS, NUM_WORKERS
-from utils import load_image, load_labels, create_gt_mask
-from model import SegmentationModel
-from metrics import calculate_metrics, aggregate_metrics
-from visualization import plot_performance_curves, print_metrics, find_optimal_threshold
+from .config import IMAGES_DIR, LABELS_DIR, CONFIDENCE_THRESHOLDS, NUM_WORKERS
+from .utils import load_image, load_labels, create_gt_mask
+from .model import SegmentationModel
+from .metrics import calculate_metrics, aggregate_metrics
+from .visualization import plot_performance_curves, print_metrics, find_optimal_threshold
 
 class ModelEvaluator:
     """
     Class to evaluate a segmentation model on a dataset
     """
-    
-    def __init__(self):
-        """Initialize the evaluator"""
-        self.model = SegmentationModel()
+    def __init__(self, model_path: str = None):
+        # forward the path into SegmentationModel
+        self.model = SegmentationModel(model_path)
         
     def process_single_image(self, args):
         """
