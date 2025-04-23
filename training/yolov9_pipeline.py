@@ -459,14 +459,18 @@ def evaluate_segmentation_model(local_path):
 )
 def run_pipeline():
     # Step 1: Version the original dataset
-    # dataset_id = version_dataset()
+    dataset_id = version_dataset()
     
     # Step 2: Preprocess the dataset and version the processed dataset
-    # processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
-    
-    base_id = base_train_yolov9(dataset_id="asgkljkljas")
+    processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
+
+    # Step 3: Train the base YOLOv9
+    base_id = base_train_yolov9(dataset_id=processed_dataset_id)
+
+    # Step 4: HPO
     local_path = hyperparam_optimize(base_task_id=base_id)
     
+    # Step 5: Evaluation
     eval_results = evaluate_segmentation_model(local_path)
 
 
