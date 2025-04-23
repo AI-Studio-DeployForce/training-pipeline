@@ -388,40 +388,44 @@ def hyperparam_optimize(base_task_id):
 
 @PipelineDecorator.component(return_values=["results"])
 def evaluate_segmentation_model(local_path):
-    
     """
     Evaluate the YOLOv9 segmentation model and log metrics to ClearML.
     """
+    import os
+    import evaluation.config as cfg
     from evaluation.evaluator import ModelEvaluator
-    from evaluation.config import OUTPUT_PLOT_FILENAME, MODEL_PATH
-    MODEL_PATH = local_path
-    # Initialize ClearML Task
-    with Task.init(
+    from clearml import Task
+
+    # 1) Override the config’s MODEL_PATH so SegmentationModel() uses our checkpoint
+    cfg.MODEL_PATH = local_path
+    OUTPUT_PLOT_FILENAME = cfg.OUTPUT_PLOT_FILENAME
+
+    # 2) Initialize the ClearML Task (no context manager)
+    eval_task = Task.init(
         project_name="YOLOv9_Training",
         task_name="Evaluate_YOLOv9",
         reuse_last_task_id=False
-    ) as eval_task:
+    )
 
-        # Run model evaluation
-        evaluator = ModelEvaluator()
+    try:
+        # 3) Run model evaluation — ModelEvaluator will read cfg.MODEL_PATH
+        # evaluator = ModelEvaluator()
+        evaluator = ModelEvaluator(model_path=local_path)
         results = evaluator.evaluate()
 
-        # Get logger
+        # 4) Log per-threshold F1
         logger = eval_task.get_logger()
-
-        # Log F1 scores per confidence threshold
         thresholds = results.get("thresholds", [])
         f1_scores = results["aggregate_metrics"]["f1"]
-
-        for i, threshold in enumerate(thresholds):
+        for i, thr in enumerate(thresholds):
             logger.report_scalar(
                 title="Aggregate F1 vs Threshold",
                 series="F1",
                 value=f1_scores[i],
-                iteration=int(threshold * 100)
+                iteration=int(thr * 100)
             )
 
-        # Log optimal performance summary
+        # 5) Log optimal stats
         optimal = results["optimal"]
         logger.report_text(
             f"Optimal Threshold: {optimal['threshold']:.2f}\n"
@@ -430,7 +434,7 @@ def evaluate_segmentation_model(local_path):
             f"F1 Score: {optimal['f1']:.4f}"
         )
 
-        # Upload performance plot if exists
+        # 6) Upload the performance plot if generated
         if os.path.exists(OUTPUT_PLOT_FILENAME):
             logger.report_image(
                 title="Performance Curves",
@@ -442,7 +446,10 @@ def evaluate_segmentation_model(local_path):
 
         return results
 
-        
+    finally:
+        # 7) Close the ClearML task cleanly
+        eval_task.close()
+
 # ------------------------
 # Pipeline flow function
 # ------------------------
@@ -452,17 +459,15 @@ def evaluate_segmentation_model(local_path):
 )
 def run_pipeline():
     # Step 1: Version the original dataset
-    dataset_id = version_dataset()
+    # dataset_id = version_dataset()
     
     # Step 2: Preprocess the dataset and version the processed dataset
-    processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
+    # processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
     
-    base_id = base_train_yolov9(dataset_id=processed_dataset_id)
+    base_id = base_train_yolov9(dataset_id="asgkljkljas")
     local_path = hyperparam_optimize(base_task_id=base_id)
     
     eval_results = evaluate_segmentation_model(local_path)
-    print("Evaluation complete. Results summary:")
-    print(eval_results)
 
 
 if __name__ == "__main__":
