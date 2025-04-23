@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 from ultralytics import YOLO
-from config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD, POST_DISASTER
+from evaluation.config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD, POST_DISASTER
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 class SegmentationModel:

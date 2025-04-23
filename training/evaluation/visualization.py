@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from config import PLOT_STYLES, OUTPUT_PLOT_FILENAME, OUTPUT_PLOT_DPI
+from evaluation.config import PLOT_STYLES, OUTPUT_PLOT_FILENAME, OUTPUT_PLOT_DPI
 
 def plot_performance_curves(confidence_thresholds, class_metrics, aggregate_metrics):
     """
