@@ -168,7 +168,7 @@ def base_train_yolov9(dataset_id):
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
         "patience": 20,
-        "epochs": 100,
+        "epochs": 1,
         "img_size": 256,
         "batch_size": 32,
         "lr0": 0.001,          # initial learning rate
@@ -349,7 +349,7 @@ def hyperparam_optimize(base_task_id):
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
         save_top_k_tasks_only=5,  # 5,
         compute_time_limit=None,
-        total_max_jobs=10,
+        total_max_jobs=1,
         min_iteration_per_job=None,
         max_iteration_per_job=None,
     )
@@ -381,6 +381,68 @@ def hyperparam_optimize(base_task_id):
     else:
         print("No models found in the task")
         return None
+
+# ------------------------
+# STEP 5: Model Evaluation
+# ------------------------
+
+@PipelineDecorator.component(return_values=["results"])
+def evaluate_segmentation_model(local_path):
+    
+    """
+    Evaluate the YOLOv9 segmentation model and log metrics to ClearML.
+    """
+    from evaluation.evaluator import ModelEvaluator
+    from evaluation.config import OUTPUT_PLOT_FILENAME, MODEL_PATH
+    MODEL_PATH = local_path
+    # Initialize ClearML Task
+    with Task.init(
+        project_name="YOLOv9_Training",
+        task_name="Evaluate_YOLOv9",
+        reuse_last_task_id=False
+    ) as eval_task:
+
+        # Run model evaluation
+        evaluator = ModelEvaluator()
+        results = evaluator.evaluate()
+
+        # Get logger
+        logger = eval_task.get_logger()
+
+        # Log F1 scores per confidence threshold
+        thresholds = results.get("thresholds", [])
+        f1_scores = results["aggregate_metrics"]["f1"]
+
+        for i, threshold in enumerate(thresholds):
+            logger.report_scalar(
+                title="Aggregate F1 vs Threshold",
+                series="F1",
+                value=f1_scores[i],
+                iteration=int(threshold * 100)
+            )
+
+        # Log optimal performance summary
+        optimal = results["optimal"]
+        logger.report_text(
+            f"Optimal Threshold: {optimal['threshold']:.2f}\n"
+            f"Precision: {optimal['precision']:.4f}, "
+            f"Recall: {optimal['recall']:.4f}, "
+            f"F1 Score: {optimal['f1']:.4f}"
+        )
+
+        # Upload performance plot if exists
+        if os.path.exists(OUTPUT_PLOT_FILENAME):
+            logger.report_image(
+                title="Performance Curves",
+                series="Evaluation Metrics",
+                local_path=OUTPUT_PLOT_FILENAME,
+                iteration=0
+            )
+            eval_task.upload_artifact("Performance Curve Plot", OUTPUT_PLOT_FILENAME)
+
+        return results
+
+        
 # ------------------------
 # Pipeline flow function
 # ------------------------
@@ -396,7 +458,11 @@ def run_pipeline():
     processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
     
     base_id = base_train_yolov9(dataset_id=processed_dataset_id)
-    hyperparam_optimize(base_task_id=base_id)
+    local_path = hyperparam_optimize(base_task_id=base_id)
+    
+    eval_results = evaluate_segmentation_model(local_path)
+    print("Evaluation complete. Results summary:")
+    print(eval_results)
 
 
 if __name__ == "__main__":
