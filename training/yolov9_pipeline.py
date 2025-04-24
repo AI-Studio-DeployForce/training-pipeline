@@ -385,7 +385,6 @@ def hyperparam_optimize(base_task_id):
 # ------------------------
 # STEP 5: Model Evaluation
 # ------------------------
-
 @PipelineDecorator.component(return_values=["results"])
 def evaluate_segmentation_model(local_path):
     """
@@ -451,6 +450,38 @@ def evaluate_segmentation_model(local_path):
         eval_task.close()
 
 # ------------------------
+# STEP 6: Model Versioning
+# ------------------------
+@PipelineDecorator.component(return_values=["model_id"])
+def version_model(local_path, processed_dataset_id, eval_results):
+    """
+    Create a ClearML OutputModel entry and upload the best weights.
+    """
+    from clearml import Task, OutputModel
+
+    # 1) Initialize a ClearML task for versioning
+    version_task = Task.init(
+        project_name="YOLOv9_Training",
+        task_name="Version_YOLOv9_Model",
+        reuse_last_task_id=False
+    )
+
+    # 2) Create an OutputModel linked to this task
+    output_model = OutputModel(
+        task=version_task,
+        framework="PyTorch",
+        name="YOLOv9_BuildingDamage_Segmentation"
+    )
+
+    # 3) Upload the checkpoint file
+    output_model.update_weights(weights_filename=local_path)
+
+    # 4) Publish it in the model registry
+    output_model.publish()
+
+    return output_model.id
+
+# ------------------------
 # Pipeline flow function
 # ------------------------
 @PipelineDecorator.pipeline(
@@ -473,6 +504,9 @@ def run_pipeline():
     # Step 5: Evaluation
     eval_results = evaluate_segmentation_model(local_path)
 
+    # Step 6: Model versioning
+    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=eval_results)
+    print(f"Registered model ID: {model_id}")
 
 if __name__ == "__main__":
     print("Running YOLOv9 pipeline locally...")
