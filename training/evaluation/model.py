@@ -2,22 +2,21 @@ import os
 import numpy as np
 import cv2
 from ultralytics import YOLO
-from config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD, POST_DISASTER
+from evaluation.config import MODEL_PATH, TILE_SIZE, NUM_TILES, CLASS_COLORS, IOU_THRESHOLD, POST_DISASTER
+import evaluation.config as cfg
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 class SegmentationModel:
     """
     Class to handle a YOLO segmentation model for building damage assessment
     """
-    
-    def __init__(self, model_path=MODEL_PATH):
+    def __init__(self, model_path: str = None):
         """
-        Initialize the model
+        If a model_path is provided, use it; otherwise fall back to cfg.MODEL_PATH.
+        """
+        path = model_path or cfg.MODEL_PATH
+        self.model = YOLO(path)
         
-        Args:
-            model_path: Path to the model weights file
-        """
-        self.model = YOLO(model_path)
     
     def color_to_class_id(self, color):
         """

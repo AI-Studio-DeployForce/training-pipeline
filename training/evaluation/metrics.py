@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
-from utils import bgr_mask_to_labels, COLOR_ARRAYS
+from evaluation.utils import bgr_mask_to_labels, COLOR_ARRAYS
 
 def calculate_metrics(gt_mask, pred_mask):
     """

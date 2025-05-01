@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from config import CLASS_COLORS
+from evaluation.config import CLASS_COLORS
 
 def load_image(image_path):
     """
