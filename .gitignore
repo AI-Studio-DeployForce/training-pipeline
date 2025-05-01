@@ -8,3 +8,5 @@
 *.json
 *.zip
 *.DS_Store
+*/runs/*
+runs/*

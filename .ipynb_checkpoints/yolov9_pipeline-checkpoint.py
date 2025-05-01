@@ -90,7 +90,7 @@ def preprocess_dataset(dataset_id):
          pre_folder = "datasets/original_data_yolo/pre", 
          window_size = 256, 
          keep_ratio = 0.2,
-         process_folder = "post")
+         process_folder = "pre")
     
     print("Preprocessing completed successfully")
     
@@ -168,7 +168,7 @@ def base_train_yolov9(dataset_id):
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
         "patience": 20,
-        "epochs": 1,
+        "epochs": 100,
         "img_size": 256,
         "batch_size": 32,
         "lr0": 0.001,          # initial learning rate
@@ -349,7 +349,7 @@ def hyperparam_optimize(base_task_id):
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
         save_top_k_tasks_only=5,  # 5,
         compute_time_limit=None,
-        total_max_jobs=1,
+        total_max_jobs=10,
         min_iteration_per_job=None,
         max_iteration_per_job=None,
     )
@@ -370,116 +370,10 @@ def hyperparam_optimize(base_task_id):
 
     # optionally download best weights
     best_exp_task = Task.get_task(task_id=best_exp_id)
-    
-    if best_exp_task.models:    
-        print(f"Found model: {best_exp_task.models['output'][0]}")
-        # Get the model object and then download it
-        model = best_exp_task.models['output'][0]
-        model_path = model.get_local_copy()
-        print(f"Downloaded model to {model_path}")
-        return model_path
-    else:
-        print("No models found in the task")
-        return None
-
-# ------------------------
-# STEP 5: Model Evaluation
-# ------------------------
-@PipelineDecorator.component(return_values=["results"])
-def evaluate_segmentation_model(local_path):
-    """
-    Evaluate the YOLOv9 segmentation model and log metrics to ClearML.
-    """
-    import os
-    import evaluation.config as cfg
-    from evaluation.evaluator import ModelEvaluator
-    from clearml import Task
-
-    # 1) Override the config’s MODEL_PATH so SegmentationModel() uses our checkpoint
-    cfg.MODEL_PATH = local_path
-    OUTPUT_PLOT_FILENAME = cfg.OUTPUT_PLOT_FILENAME
-
-    # 2) Initialize the ClearML Task (no context manager)
-    eval_task = Task.init(
-        project_name="YOLOv9_Training",
-        task_name="Evaluate_YOLOv9",
-        reuse_last_task_id=False
-    )
-
-    try:
-        # 3) Run model evaluation — ModelEvaluator will read cfg.MODEL_PATH
-        # evaluator = ModelEvaluator()
-        evaluator = ModelEvaluator(model_path=local_path)
-        results = evaluator.evaluate()
-
-        # 4) Log per-threshold F1
-        logger = eval_task.get_logger()
-        thresholds = results.get("thresholds", [])
-        f1_scores = results["aggregate_metrics"]["f1"]
-        for i, thr in enumerate(thresholds):
-            logger.report_scalar(
-                title="Aggregate F1 vs Threshold",
-                series="F1",
-                value=f1_scores[i],
-                iteration=int(thr * 100)
-            )
-
-        # 5) Log optimal stats
-        optimal = results["optimal"]
-        logger.report_text(
-            f"Optimal Threshold: {optimal['threshold']:.2f}\n"
-            f"Precision: {optimal['precision']:.4f}, "
-            f"Recall: {optimal['recall']:.4f}, "
-            f"F1 Score: {optimal['f1']:.4f}"
-        )
-
-        # 6) Upload the performance plot if generated
-        if os.path.exists(OUTPUT_PLOT_FILENAME):
-            logger.report_image(
-                title="Performance Curves",
-                series="Evaluation Metrics",
-                local_path=OUTPUT_PLOT_FILENAME,
-                iteration=0
-            )
-            eval_task.upload_artifact("Performance Curve Plot", OUTPUT_PLOT_FILENAME)
-
-        return results
-
-    finally:
-        # 7) Close the ClearML task cleanly
-        eval_task.close()
-
-# ------------------------
-# STEP 6: Model Versioning
-# ------------------------
-@PipelineDecorator.component(return_values=["model_id"])
-def version_model(local_path, processed_dataset_id, eval_results):
-    """
-    Create a ClearML OutputModel entry and upload the best weights.
-    """
-    from clearml import Task, OutputModel
-
-    # 1) Initialize a ClearML task for versioning
-    version_task = Task.init(
-        project_name="YOLOv9_Training",
-        task_name="Version_YOLOv9_Model",
-        reuse_last_task_id=False
-    )
-
-    # 2) Create an OutputModel linked to this task
-    output_model = OutputModel(
-        task=version_task,
-        framework="PyTorch",
-        name="YOLOv9_BuildingDamage_Segmentation"
-    )
-
-    # 3) Upload the checkpoint file
-    output_model.update_weights(weights_filename=local_path)
-
-    # 4) Publish it in the model registry
-    output_model.publish()
-
-    return output_model.id
+    for artifact_name, artifact_obj in best_exp_task.artifacts.items():
+        if "best" in artifact_name.lower() or "weights" in artifact_name.lower():
+            local_path = artifact_obj.get_local_copy()
+            print(f"Downloaded best model artifact '{artifact_name}' to {local_path}")
 
 # ------------------------
 # Pipeline flow function
@@ -494,43 +388,12 @@ def run_pipeline():
     
     # Step 2: Preprocess the dataset and version the processed dataset
     processed_dataset_id = preprocess_dataset(dataset_id=dataset_id)
-
-    # Step 3: Train the base YOLOv9
-    base_id = base_train_yolov9(dataset_id=processed_dataset_id)
-
-    # Step 4: HPO
-    local_path = hyperparam_optimize(base_task_id=base_id)
     
-    # Step 5: Evaluation
-    eval_results = evaluate_segmentation_model(local_path)
+    base_id = base_train_yolov9(dataset_id=processed_dataset_id)
+    hyperparam_optimize(base_task_id=base_id)
 
-    # Step 6: Model versioning
-    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=eval_results)
-    print(f"Registered model ID: {model_id}")
 
 if __name__ == "__main__":
-
- 
-    Task.add_requirements("-e .") 
- 
-    task = Task.init(
-        project_name="YOLOv9_Training",
-        task_name="YOLOv9_EndToEnd_Pipeline_Orchestrator",
-        task_type=Task.TaskTypes.controller,
-    )
-
-           
-
-    # -- point every component to the queue
-    PipelineDecorator.set_default_execution_queue("yolov9-queue")
-
-    # -- if we’re still local, clone & enqueue ourselves,
-    #    then exit so the real run happens on the Agent
-    if task.running_locally():
-        task.execute_remotely(queue_name="yolov9-queue",
-                              clone=False,
-                              exit_process=True)
-
-    # when the script is *actually* running on the Agent,
-    # the next line will fire:
+    print("Running YOLOv9 pipeline locally...")
+    PipelineDecorator.run_locally()
     run_pipeline()
