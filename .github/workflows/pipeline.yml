@@ -1,0 +1,33 @@
+name: Run YOLOv9 pipeline on self-hosted runner
+
+on:
+  push:
+    branches: [master]          # change if your default branch is different
+  workflow_dispatch:          # enables the “Run workflow” button in Actions
+
+jobs:
+  run-pipeline:
+    runs-on: [self-hosted, clearml, yolo]   # must match the labels you set
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run ClearML pipeline
+        env:
+          CLEARML_API_ACCESS_KEY: ${{ secrets.CLEARML_API_ACCESS_KEY }}
+          CLEARML_API_SECRET_KEY: ${{ secrets.CLEARML_API_SECRET_KEY }}
+          CLEARML_API_SERVER:     ${{ secrets.CLEARML_API_SERVER }}
+          CLEARML_FILES_SERVER:   ${{ secrets.CLEARML_FILES_SERVER }}
+          CLEARML_WEB_SERVER:     ${{ secrets.CLEARML_WEB_SERVER }}
+        run: |
+          python yolov9_pipeline.py
