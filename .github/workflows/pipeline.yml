@@ -36,4 +36,4 @@ jobs:
           CLEARML_WEB_SERVER:     ${{ secrets.CLEARML_WEB_SERVER }}
         run: |
           cd training
-          python yolov9_pipeline.py
+          python yolov9_pipeline.py 
