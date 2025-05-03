@@ -8,7 +8,6 @@ clearml>=1.12.0
 
 # Hyperparameter optimization
 optuna>=3.3.0
-
 # Data processing and visualization
 numpy>=1.24.0
 pandas>=2.0.0
