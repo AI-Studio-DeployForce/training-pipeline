@@ -1,8 +1,12 @@
 name: Run YOLOv9 pipeline on self-hosted runner
 
 on:
-  push:
-    branches: [master]          # change if your default branch is different
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+    paths:
+      - 'training/yolov9_pipeline.py'
   workflow_dispatch:          # enables the “Run workflow” button in Actions
 
 jobs:

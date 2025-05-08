@@ -349,7 +349,7 @@ def hyperparam_optimize(base_task_id):
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
         save_top_k_tasks_only=5,  # 5,
         compute_time_limit=None,
-        total_max_jobs=1,
+        total_max_jobs=2,
         min_iteration_per_job=None,
         max_iteration_per_job=None,
     )
