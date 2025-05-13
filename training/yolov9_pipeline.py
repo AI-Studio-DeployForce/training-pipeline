@@ -455,7 +455,7 @@ def evaluate_segmentation_model(local_path):
 @PipelineDecorator.component(return_values=["model_id"])
 def version_model(local_path, processed_dataset_id, eval_results):
     """
-    Create a ClearML OutputModel entry and upload the best weights.
+    Upload model to S3 and register it in ClearML model registry.
     """
     from clearml import Task, OutputModel
 
@@ -474,10 +474,15 @@ def version_model(local_path, processed_dataset_id, eval_results):
     )
 
     # 3) Upload the checkpoint file
-    output_model.update_weights(weights_filename=local_path)
+    output_model.update_weights(
+        weights_filename=local_path,
+        upload_uri="s3://deployforce-clearml-models/",
+        target_filename="yolov9_buildingdamage_best.pt")
 
     # 4) Publish it in the model registry
     output_model.publish()
+    
+    print(f"Model uploaded to S3 and registered in ClearML with ID: {output_model.id}")
 
     return output_model.id
 
