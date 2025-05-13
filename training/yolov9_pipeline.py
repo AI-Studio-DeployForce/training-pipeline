@@ -481,7 +481,10 @@ def version_model(local_path, processed_dataset_id, eval_results):
 
     # 4) Publish it in the model registry
     output_model.publish()
-    
+
+    # Assign tags to the model
+    output_model.tags = ["best"]
+
     print(f"Model uploaded to S3 and registered in ClearML with ID: {output_model.id}")
 
     return output_model.id
