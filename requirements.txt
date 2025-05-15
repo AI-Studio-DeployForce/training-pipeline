@@ -24,6 +24,7 @@ tqdm>=4.65.0
 PyYAML>=6.0.0
 pathlib>=1.0.1
 supabase
+dotenv
 
 # Optional: GPU support
 # torch-cuda  # Uncomment if using CUDA 
