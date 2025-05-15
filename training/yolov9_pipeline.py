@@ -395,7 +395,7 @@ def evaluate_segmentation_model(local_path):
     from evaluation.evaluator import ModelEvaluator
     from clearml import Task
 
-    # 1) Override the config’s MODEL_PATH so SegmentationModel() uses our checkpoint
+    # 1) Override the config's MODEL_PATH so SegmentationModel() uses our checkpoint
     cfg.MODEL_PATH = local_path
     OUTPUT_PLOT_FILENAME = cfg.OUTPUT_PLOT_FILENAME
 
@@ -458,6 +458,17 @@ def version_model(local_path, processed_dataset_id, eval_results):
     Upload model to S3 and register it in ClearML model registry.
     """
     from clearml import Task, OutputModel
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+
+    # Load environment variables
+    load_dotenv()
+
+    # Initialize Supabase client
+    supabase_url = os.getenv('SUPABASE_HOST_URL')
+    supabase_key = os.getenv('SUPABASE_API_SECRET')
+    supabase_client = create_client(supabase_url, supabase_key) 
 
     # 1) Initialize a ClearML task for versioning
     version_task = Task.init(
@@ -487,6 +498,21 @@ def version_model(local_path, processed_dataset_id, eval_results):
 
     print(f"Model uploaded to S3 and registered in ClearML with ID: {output_model.id}")
 
+    # First check if any row exists
+    result = supabase_client.table("new_weight_check").select("*").execute()
+    
+    if len(result.data) > 0:
+        # Update the existing row using its ID
+        row_id = result.data[0]['id']  # Assuming 'id' is the primary key column
+        supabase_client.table("new_weight_check").update(
+            {"new_weight": True, "model_id": output_model.id}
+        ).eq('id', row_id).execute()
+    else:
+        # Insert a new row
+        supabase_client.table("new_weight_check").insert(
+            {"new_weight": True, "model_id": output_model.id}
+        ).execute()
+
     return output_model.id
 
 # ------------------------
@@ -510,10 +536,10 @@ def run_pipeline():
     local_path = hyperparam_optimize(base_task_id=base_id)
     
     # Step 5: Evaluation
-    eval_results = evaluate_segmentation_model(local_path)
+    # eval_results = evaluate_segmentation_model(local_path)
 
     # Step 6: Model versioning
-    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=eval_results)
+    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=local_path)
     print(f"Registered model ID: {model_id}")
 
 if __name__ == "__main__":
