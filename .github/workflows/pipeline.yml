@@ -5,9 +5,7 @@ on:
     types: [closed]
     branches:
       - master
-    paths:
-      - 'training/yolov9_pipeline.py'
-  workflow_dispatch:          # enables the “Run workflow” button in Actions
+  workflow_dispatch:          # enables the "Run workflow" button in Actions
 
 jobs:
   run-pipeline:
