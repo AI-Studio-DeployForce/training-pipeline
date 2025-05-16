@@ -10,6 +10,7 @@ on:
 jobs:
   run-pipeline:
     runs-on: [self-hosted, clearml, yolo]   # must match the labels you set
+    timeout-minutes: 6000   # 4 days + a safety margin 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
