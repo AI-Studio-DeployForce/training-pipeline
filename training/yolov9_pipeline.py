@@ -532,10 +532,10 @@ def run_pipeline():
     local_path = hyperparam_optimize(base_task_id=base_id)
     
     # Step 5: Evaluation
-    # eval_results = evaluate_segmentation_model(local_path)
+    eval_results = evaluate_segmentation_model(local_path)
 
     # Step 6: Model versioning
-    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=local_path)
+    model_id = version_model(local_path=local_path, processed_dataset_id=processed_dataset_id, eval_results=eval_results)
     print(f"Registered model ID: {model_id}")
 
 if __name__ == "__main__":
