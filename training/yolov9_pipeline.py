@@ -168,7 +168,7 @@ def base_train_yolov9(dataset_id):
         "data_config": "./data.yaml",
         "model_config": "yolov9_architecture.yaml",
         "patience": 20,
-        "epochs": 1,
+        "epochs": 100,
         "img_size": 256,
         "batch_size": 32,
         "lr0": 0.001,          # initial learning rate
@@ -349,7 +349,7 @@ def hyperparam_optimize(base_task_id):
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
         save_top_k_tasks_only=5,  # 5,
         compute_time_limit=None,
-        total_max_jobs=1,
+        total_max_jobs=10,
         min_iteration_per_job=None,
         max_iteration_per_job=None,
     )
