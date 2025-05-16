@@ -460,15 +460,11 @@ def version_model(local_path, processed_dataset_id, eval_results):
     from clearml import Task, OutputModel
     from supabase import create_client
     import os
-    from dotenv import load_dotenv
-
-    # Load environment variables
-    load_dotenv()
 
     # Initialize Supabase client
-    supabase_url = os.getenv('SUPABASE_HOST_URL')
-    supabase_key = os.getenv('SUPABASE_API_SECRET')
-    supabase_client = create_client(supabase_url, supabase_key) 
+    supabase_url = os.environ['SUPABASE_HOST_URL']  # or os.getenv() without load_dotenv()
+    supabase_key = os.environ['SUPABASE_API_SECRET']
+    supabase_client = create_client(supabase_url, supabase_key)
 
     # 1) Initialize a ClearML task for versioning
     version_task = Task.init(
