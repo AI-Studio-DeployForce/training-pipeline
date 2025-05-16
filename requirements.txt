@@ -25,6 +25,7 @@ PyYAML>=6.0.0
 pathlib>=1.0.1
 supabase
 dotenv
+boto3>=1.9
 
 # Optional: GPU support
 # torch-cuda  # Uncomment if using CUDA 
